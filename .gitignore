@@ -1,0 +1,12 @@
+
+*.pyc
+*.pyo
+*.pyd
+*.o
+
+*.wav
+*.mp3
+
+__pycache__
+
+.vscode/
