@@ -9,7 +9,6 @@ general utilities
 import numpy as np
 import wave
 import struct
-import soundfile
 
 # returns an array of times lasting for `t` seconds, sampled at `hz` per second (default 44100)
 def times(t, hz=44100):

@@ -11,6 +11,14 @@ As well as functions to return tuples of chords
 """
 
 
+# some constants (too low or high and not in tune, mainly just for debugging and graphing purposes)
+HZ_1 = 1.0
+HZ_2 = 2.0
+
+SUPERHIGH = 20000.0
+
+
+
 # reference frequencies
 
 C4 = 261.63

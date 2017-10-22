@@ -1,22 +1,31 @@
 """
 
-simple example usage
+simple example usage of chaudio
 
 """
 
-import chsound
-#import viewer
+import chaudio
+import viewer
 import waveforms as wf
-import freq as fq
+import freq
 
-t = chsound.times(10)
 
-#y = waveforms.triangle(t, freq.A4) + waveforms.triangle(t, freq.E5)
-Ey = sum([wf.triangle(t, i) for i in fq.chord(fq.A4, True)])
+# create our array of time samples (lasting 4 seconds)
+t = chaudio.times(1)
 
-#viewer.show_data(y)
+# our air pressure array, combining a low square wave and a high triangle wave
+y = .5 * wf.square(t, freq.A3) + 5 * wf.triangle(t, freq.E5)
 
-print ("to file")
-chsound.tofile("triangle.wav", y)
-print ('done')
+# open a window showing a graph of the samples
+viewer.show_data(y)
+
+# open a window showing a graph of frequency-volume correlation
+viewer.show_frequency_graph(y)
+
+
+# outputs the sound to `simple.wav` using default settings
+chaudio.tofile("simple.wav", y)
+
+
+input("press enter to close")
 
