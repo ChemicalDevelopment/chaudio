@@ -5,7 +5,21 @@ chaudio is a collection of audio processing tools
 
 ## Usage
 
-Run `python3 src/simple.py` for a simple demonstration of what chaudio can do.
+### simple.py
+
+Run `python3 src/simple.py` to create `simple.wav`, and showcase basis synthesis with chaudio
+
+### read.py
+
+This allows you to perform analysis on existing sound files
+
+Run `python3 src/read.py -h` for help.
+
+Once you've ran `simple.py`, you will have `simple.wav`, which you can use with this example:
+
+`python3 src/read.py simple.wav -g freq`
+
+to show a frequency graph of the sound
 
 
 ## Installation

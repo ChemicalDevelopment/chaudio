@@ -19,12 +19,39 @@ def normalize(source):
     return source / abs(max(np.max(source), np.min(source), key=abs))
 
 # returns audiodata from a filename
-def fromfile(filename):
+def fromfile(filename, combine=False):
     w = wave.open(filename, 'r')
-    for i in range(w.getnframes()):
-        frame = w.readframes(i)
-        print (frame)
+    
+    channels, samplebytes, samplehz, samples, _, __ = w.getparams()
+
+    framedata = w.readframes(samples)
+
     w.close()
+    
+    if samplebytes == 1:
+        adata = np.fromstring(framedata, dtype=np.int8)
+    elif samplebytes == 2:
+        adata = np.fromstring(framedata, dtype=np.int16)
+    elif samplebytes == 3:
+        adata = np.fromstring(framedata, dtype=np.int32)
+    elif samplebytes == 4:
+        adata = np.fromstring(framedata, dtype=np.int32)
+    else:
+        adata = np.fromstring(framedata, dtype=np.float)
+
+    adata = adata.astype(np.float32) / (2.0 ** (8 * samplebytes-1))
+
+    if channels == 2:
+        if combine:
+            return (adata[0::2] + adata[1::2]) / 2.0
+        else:
+            return (adata[0::2], adata[1::2])
+    else:
+        if combine:
+            return adata
+        else:
+            return (adata, adata)
+
 
 
 def tofile(filename, laudio, raudio=None, hz=44100):

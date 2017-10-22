@@ -21,14 +21,14 @@ def show_data(samples):
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
-    print ("diff samples", )
-
     # used to determine line width
-    diff_score = 4.0 / (1 + np.mean(np.diff(chaudio.normalize(samples))) * 10 ** 6.2)
+    #diff_score = 4.0 / (1 + np.mean(np.diff(chaudio.normalize(samples))) * 10 ** 6.2)
 
-    linewidth = diff_score
+    #linewidth = diff_score
 
-    ax.plot(samples, linewidth=linewidth)
+    #ax.plot(samples, linewidth=linewidth)
+    print ("N",len(samples))
+    ax.plot(samples)
 
     ax.set_title("Air Pressure")
     ax.set_xlabel("Sample")
