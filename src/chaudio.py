@@ -5,13 +5,18 @@ general utilities
 
 """
 
-import numpy as np
+# system imports
 import wave
 import struct
-import waveforms
 import math
+
+# libraries
+import numpy as np
+
+# chaudio imports
+import waveforms
 import plugins
-import logging
+import arrangers
 
 # returns an array of times
 def times(ar, hz=44100):
@@ -27,171 +32,45 @@ def maxabs(data):
     return np.max(np.abs(data))
 
 # returns a normalized audio between -1.0 and 1.0
-def normalize(data):
-    return data / maxabs(data)
+def normalize(audio):
+    # stereo input
+    if isinstance(audio, tuple):
+        to_div = max(maxabs(audio[0]), maxabs(audio[1]))
+        return audio[0] / to_div, audio[1] / to_div
+    else:
+        return audio / maxabs(audio)
 
+# time signature class, for use with ExtendedArranger and others
+class TimeSignature:
+    # default is 4/4
+    def __init__(self, top=4, bottom=4, bpm=80):
+        self.bpm = bpm
+        self.top = 4
+        self.bottom = 4
 
-"""
-
-this class is for combining sounds together, given a point:
-
-"""
-
-class SetitemCall:
-    def __init__(self, key, val, kwargs):
-        self.key = key
-        self.val = val
-        self.kwargs = kwargs
-
-
-class BasicAudioSource:
-    def __init__(self, hz=44100):
-        self.hz = hz
-        self.samplestep = 1.0 / self.hz
-
-        self.data = np.empty((0,), dtype=np.float32)
-
-        self.setitem_calls = []
-
-        # a list of plugins to apply to incoming audio (should be of type BasicAudioPlugin)
-        self.setitem_plugins = []
-        self.final_plugins = []
-
-        self.last_setitem_hash = -1
-        self.last_final_hash = -1
-
-        self.source_init()
-
-    def __hash__(self):
-        print ("hasing")
-        return hash(np.sum(self.data) + sum([np.sum(i.val[:]) for i in self.setitem_calls]))
-        #return hash(math.sin(len(self.setitem_calls) * 1.0 + .5 * len(self.setitem_plugins) + 3.2 * len(self.final_plugins))) + hash(np.sum(self.data)) + hash(np.sum([i.val[:] for i in self.setitem_calls])) + hash(tuple(self.setitem_plugins)) + hash(tuple(self.final_plugins))
-
-    def source_init(self):
-        pass
-
-# returns the index of the plugin added
-
-    def add_setitem_plugin(self, plugin):
-        self.setitem_plugins += [plugin]
-        return len(self.setitem_plugins) - 1
-
-    def add_final_plugin(self, plugin):
-        self.final_plugins += [plugin]
-        return len(self.final_plugins) - 1
-
-    def remove_setitem_plugin(self, plugin):
-        if isinstance(plugin, int):
-            self.setitem_plugins.pop(plugin)
-        else:
-            self.setitem_plugins.remove(plugin)
-
-    def remove_final_plugin(self, plugin):
-        if isinstance(plugin, int):
-            self.final_plugins.pop(plugin)
-        else:
-            self.final_plugins.remove(plugin)
-
-
-# recalculate
-
-    def apply_setitem(self, setitem_call):
-        key = setitem_call.key
-        val = setitem_call.val[:]
-
-        kwargs = setitem_call.kwargs
-
-        for plugin in self.setitem_plugins:
-            val = plugin.process(val)
-        
-        if len(self.data) < key+len(val):
-            self.data = np.append(self.data, 
-                                  np.zeros((key + len(val) - len(self.data), ), 
-                                  dtype=np.float32)
-            )
-
-        self.data[key:key+len(val)] += val
-
-    def ensure_updated_data(self):
-        cur_hash = self.__hash__()
-        #print ([i.val for i in self.setitem_calls])
-        if cur_hash != self.last_setitem_hash:
-            #print([i.val for i in self.setitem_calls])
-            self.update_data()
-            self.last_setitem_hash = cur_hash
-            return True
-        else:
-            return False
-
-    def ensure_updated_final_data(self):
-        if self.ensure_updated_data() or hash(tuple(self.final_plugins)) != self.last_final_hash:
-            self.update_final_data()
-            self.last_final_hash = hash(tuple(self.final_plugins))
-            return True
-        else:
-            return False
-
-    def update_data(self):
-        #print ("updating data...")
-        
-        self.data = np.empty((0,), dtype=np.float32)
-
-        for setitem_call in self.setitem_calls:
-            self.apply_setitem(setitem_call)
-        #print ("done")
-            
-
-    def update_final_data(self):
-        #print ("updating final data...")
-        self.final_data = self.data[:]
-
-        for plugin in self.final_plugins:
-            self.final_data = plugin.process(self.final_data)
-
-        #print ("done")
-
-
-    def __setitem__(self, key, _val, **kwargs):
-        if not isinstance(key, int):
-            raise TypeError("in AudioSource __getitem__, key should be int")
-
-        if key < 0:
-            raise KeyError("AudioSource key must be > 0")
-
-        val = _val[:]
-
-
-        new_setitem = SetitemCall(key, _val, kwargs)
-        self.setitem_calls += [new_setitem]
-
-        if not self.ensure_updated_data():
-            self.apply_setitem(new_setitem)
-
-    # adds 'data' to self.data, offset by sample
-    def insert(self, data, sample):
-        self[sample] = data
-
-    # inserts data at a given time
-    def insert_time(self, data, time):
-        self.insert(data, int(time * self.hz))
-
+    # time[a, b] returns the time (in seconds) of the b'th beat of the a'th measure
     def __getitem__(self, key):
-        self.ensure_updated_final_data()
-        return self.final_data[key]
+        if type(key) != tuple:
+            raise KeyError("TimeSignature key should be tuple (timesig[a,b])")
 
-    def __len__(self):
-        self.ensure_updated_final_data()
-        return self.final_data.__len__()
+        measure, beat = key
 
+        if beat >= self.top:
+            raise ValueError("beat for time signature should be less than top value (err %s >= %s)" % (beat, self.top))
 
-class SmoothedSignalAudioSource(BasicAudioSource):
+        return 60.0 * (self.top * measure + beat) / self.bpm
+    
+    # so you can print out time signatures
+    def __str__(self):
+        return "%d/%d" % (self.top, self.bottom)
 
-    def source_init(self, *args, **kwargs):
-        self.add_setitem_plugin(plugins.SmoothPlugin())
-
+    def __repr__(self):
+        return self.__str__()
 
 
 # returns audiodata from a filename
+# if combine==True, then a mono data is returned (either using just mono, or averaging L and R)
+# else, return both L and R (duplicating if the file has only 1 track)
 def fromfile(filename, combine=False):
     w = wave.open(filename, 'r')
     
@@ -206,7 +85,7 @@ def fromfile(filename, combine=False):
     elif samplebytes == 2:
         adata = np.fromstring(framedata, dtype=np.int16)
     elif samplebytes == 3:
-        # since there is no 24 bit format, we have to combine int8 's
+        # since there is no 24 bit format, we have to combine int8 's, this may create problems
         print ("warning, 24 bit wave support may be buggy!")
         u8data = np.fromstring(framedata, dtype=np.int8)
         u8pdata = u8data.astype(np.int32)
@@ -218,10 +97,14 @@ def fromfile(filename, combine=False):
     else:
         adata = np.fromstring(framedata, dtype=np.float32)
 
+    # normalize to [-1.0, 1.0]
     adata = adata.astype(np.float32) / (2.0 ** (8 * samplebytes-1))
 
+    # heads up so people know what's going on
     print ("read from file " + filename)
 
+    # logic to return data in the format they asked for, if they ask for combine, we will always return np.ndarray
+    # else, return tuple of two np.ndarray s
     if channels == 2:
         if combine:
             return (adata[0::2] + adata[1::2]) / 2.0
@@ -234,21 +117,28 @@ def fromfile(filename, combine=False):
             return (adata, adata)
 
 
-
+# outputs l and r audio to a wav file
 def tofile(filename, _laudio, _raudio=None, hz=44100):
     wout = wave.open(filename, 'w')
     wout.setparams((2, 2, hz, 0, 'NONE', 'not compressed'))
 
     laudio = _laudio[:]
+
+    # either duplicate left to create stereo
     if _raudio is None:
         raudio = laudio[:]
+    # or use provided
     else:
         raudio = _raudio[:]
-
+    
+    # scale 
     out = np.empty((2 * len(laudio),), dtype=np.int16)
-    out[0::2] = 32767 * normalize(laudio)
-    out[1::2] = 32767 * normalize(raudio)
 
+    normed = normalize((laudio, raudio))
+    
+    # this will cast and round
+    out[0::2] = 32767 * normed[0]
+    out[1::2] = 32767 * normed[1]
 
     wout.writeframes(out.tostring())
     wout.close()

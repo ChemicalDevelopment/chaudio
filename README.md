@@ -34,7 +34,7 @@ the `-w` option refers to the wave generation. Complete this with `t`, `hz` and 
 
 ### ex_compose.py
 
-This is more in depth, how to use `AudioSource` to string together notes, and use plugins
+This is more in depth, how to use arrangers to string together notes, and use plugins
 
 
 ## Installation
