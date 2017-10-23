@@ -4,12 +4,13 @@
 *.pyd
 *.o
 
+
 *.wav
 *.mp3
 *.ogg
 *.flac
-!samples
 
+!samples/*.wav
 
 __pycache__
 
