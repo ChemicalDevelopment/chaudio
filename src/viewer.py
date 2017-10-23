@@ -21,28 +21,30 @@ def show_data(samples):
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
-    # used to determine line width
-    #diff_score = 4.0 / (1 + np.mean(np.diff(chaudio.normalize(samples))) * 10 ** 6.2)
-
-    #linewidth = diff_score
-
-    #ax.plot(samples, linewidth=linewidth)
-    print ("N",len(samples))
     ax.plot(samples)
 
     ax.set_title("Air Pressure")
     ax.set_xlabel("Sample")
     ax.set_ylabel("Sample Value")
 
-    #plt.show()
     plt.draw()
 
-def show_frequency_graph(samples, N=None, samplerate=44100):
+def show_frequency_graph(samples, N=None, samplerate=44100, maxfreq=44100):
     if N is None:
         N = samplerate
 
     fftdata = np.abs(np.fft.fft(samples, N)[:N//2]) * (2.0 / N)
     fftfreq = np.fft.fftfreq(N)[:N//2] * samplerate
+
+    num_to_show = 0
+    for i in fftfreq:
+        if i <= maxfreq:
+            num_to_show += 1
+        else:
+            break
+
+    fftfreq = fftfreq[:num_to_show+1]
+    fftdata = fftdata[:num_to_show+1]
 
     fig = plt.figure()
     ax = fig.add_subplot(111)

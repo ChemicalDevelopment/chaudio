@@ -14,6 +14,7 @@ parser = argparse.ArgumentParser(description='Read in an audio file and show ana
 
 parser.add_argument("file", default=None, help='file to process')
 parser.add_argument("-g", "--graph", default=["freq"], nargs="+", help='to graph (freq, data)')
+parser.add_argument("-o", "--output", default=None, help='output file')
 
 args = parser.parse_args()
 
@@ -24,11 +25,17 @@ if args.file == None:
 # read in our file
 data = chaudio.fromfile(args.file, combine=True)
 
+print ("read in data")
+
+
+if args.output is not None:
+    chaudio.tofile(args.output, data)
+
 thingsgraphed = 0
 
 if "freq" in args.graph:
     thingsgraphed += 1
-    viewer.show_frequency_graph(data)
+    viewer.show_frequency_graph(data, N=len(data))
 
 if "data" in args.graph:
     thingsgraphed += 1
