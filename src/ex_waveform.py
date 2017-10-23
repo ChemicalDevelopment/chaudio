@@ -38,9 +38,9 @@ if args.g:
     import viewer
 
     viewer.show_data(data)
+    viewer.show()
     #viewer.show_frequency_graph(data, maxfreq=args.mhz)
 
-    input("press enter to close")
 
 
 

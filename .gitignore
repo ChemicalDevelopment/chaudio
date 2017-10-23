@@ -6,6 +6,10 @@
 
 *.wav
 *.mp3
+*.ogg
+*.flac
+!samples
+
 
 __pycache__
 

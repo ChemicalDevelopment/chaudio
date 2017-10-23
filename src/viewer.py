@@ -12,9 +12,18 @@ import matplotlib.pyplot as plt
 import chaudio
 
 
-plt.ion()
+#plt.ion()
 
 
+def show_raw(x, y, title="graph", xlabel=None, ylabel=None):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+    ax.plot(x, y)
+
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
 
 # shows basic sample data
 def show_data(samples):
@@ -27,7 +36,7 @@ def show_data(samples):
     ax.set_xlabel("Sample")
     ax.set_ylabel("Sample Value")
 
-    plt.draw()
+    #plt.draw()
 
 def show_frequency_graph(samples, N=None, samplerate=44100, maxfreq=44100):
     if N is None:
@@ -53,9 +62,9 @@ def show_frequency_graph(samples, N=None, samplerate=44100, maxfreq=44100):
     ax.set_title("Frequency Volumes")
     ax.set_xlabel("Frequency ($hz$)")
     ax.set_ylabel("Volume")
-    #plt.show()
-    plt.draw()
 
+def show():
+    plt.show()
 
 
 

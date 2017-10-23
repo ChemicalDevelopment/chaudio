@@ -6,6 +6,10 @@ audio plugins, for creating cool effects
 
 import chaudio
 import numpy as np
+
+import scipy as sp
+import scipy.signal as signal
+
 import waveforms
 
 
@@ -94,6 +98,16 @@ class Fade(Basic):
 
 
 # adds white noise to the input
+class Volume(Basic):
+    def _plugin_init(self):
+        pass
+
+    def _process(self, _data):
+        data = _data[:]
+        return self.getarg("amp", 1.0) * data
+
+
+# adds white noise to the input
 class Noise(Basic):
     def _plugin_init(self):
         pass
@@ -154,5 +168,97 @@ class Pixelate(Basic):
             return data
         else:
             return data - (data % step)
+
+
+class ButterFilter(Basic):
+    def _plugin_init(self):
+        pass
+
+    def coef_pass(self, cutoff, hz, order, btype):
+        nyq = hz / 2.0
+        normal_cutoff = cutoff / nyq
+        b, a = sp.signal.butter(order, normal_cutoff, btype=btype, analog=False)
+        return b, a
+
+    def _process(self, _data):
+        data = _data[:]
+        # 5 is good default
+        order = self.getarg("order", 5)
+        cutoff = self.getarg("cutoff", 30)
+        hz = self.getarg("hz", 44100)
+        btype = self.getarg("btype", "highpass")
+
+        b, a = self.coef_pass(cutoff, hz, order, btype)
+        #return sp.signal.lfilter(b, a, data)
+        return sp.signal.filtfilt(b, a, data)
+        
+# shifts the pitch by so many cents
+class PitchShift(Basic):
+    def _plugin_init(self):
+        pass
+
+    def _process(self, _data):
+        data = _data[:]
+
+        cents = self.getarg("cents", 0)
+        hz = self.getarg("hz", 44100)
+
+        N = hz // 21
+
+        pad = np.zeros((N, ), dtype=np.float32)
+        res = np.zeros((N * (1 + len(data)//N), ), dtype=np.float32)
+        
+        for i in range(0, len(data)//N + 1):
+            this_slice = data[N * i:N * (i + 1)]
+            if i >= len(data) // N:
+                this_slice = np.append(this_slice, np.zeros((N * (i + 1) - len(data), )))
+            fftdata = np.fft.rfft(this_slice)
+            fftx = np.fft.rfftfreq(N) * hz
+            
+            fftinterval = (fftx[1] - fftx[0])
+
+            pitch_ratio = 2.0 ** (cents / 1200.0)
+
+            sfftdata = np.zeros(fftdata.shape, dtype=fftdata.dtype)
+
+            bins_to_delete = None
+
+            for j in range(0, len(fftdata)):
+                cpitch = fftx[j]
+                desired_pitch = cpitch * pitch_ratio
+                desired_bin = int(desired_pitch / fftinterval)
+                #print (i, desired_bin)
+                
+                if bins_to_delete is None:
+                    bins_to_delete = desired_bin
+                #print (i, desired_bin)
+                if desired_bin < len(sfftdata):
+                    #print ('nonzero')
+                    sfftdata[desired_bin] = fftdata[j]
+            
+            #print (bins_to_delete)
+            #sfftdata[:bins_to_delete] = 0
+            #import viewer
+            #viewer.show_raw(fftx, np.abs(fftdata))
+            #viewer.show_raw(fftx, np.abs(sfftdata))
+            #viewer.show()
+
+            prepadded = np.append(np.repeat(pad, i), np.fft.irfft(sfftdata, N))
+            appended_data = np.append(prepadded, np.repeat(pad, len(data)//N - i))
+            res += np.real(appended_data)
+
+        #bins_to_shift = cents / fftinterval
+
+        #print (bins_to_shift)
+        
+        #print (sfftdata)
+
+
+
+        return res
+
+
+
+
 
 

@@ -36,7 +36,11 @@ def normalize(audio):
     # stereo input
     if isinstance(audio, tuple):
         to_div = max(maxabs(audio[0]), maxabs(audio[1]))
-        return audio[0] / to_div, audio[1] / to_div
+        if to_div != 0:
+            return audio[0] / to_div, audio[1] / to_div
+            return audio[0] / to_div, audio[1] / to_div
+        else:
+            return audio
     else:
         return audio / maxabs(audio)
 
@@ -45,8 +49,9 @@ class TimeSignature:
     # default is 4/4
     def __init__(self, top=4, bottom=4, bpm=80):
         self.bpm = bpm
-        self.top = 4
-        self.bottom = 4
+        self.top = top
+        self.bottom = bottom
+
 
     # time[a, b] returns the time (in seconds) of the b'th beat of the a'th measure
     def __getitem__(self, key):
