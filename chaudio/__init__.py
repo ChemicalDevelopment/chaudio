@@ -12,8 +12,16 @@ Authors:
 
 """
 
+
+from __future__ import print_function
+
+
 # system imports
 import wave
+import glob
+import os 
+import sys
+import ntpath
 
 import chaudio
 
@@ -31,21 +39,46 @@ import scipy as sp
 try:
     import matplotlib
     from chaudio import viewer
-    print ("found matplotlib")
+    #print ("found matplotlib")
 except:
     viewer = None
-    print ("no matplotlib support, graphing and similar features are disabled")
+    #print ("no matplotlib support, graphing and similar features are disabled")
+
+# normal print, which uses stderr so pipes still work
+def msgprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+# prints to stdout and can be piped
+def dataprint(data, *args, **kwargs):
+    sys.stdout.write(util.todatastr(data[:], *args, **kwargs))
+
+
+chaudio_dir = os.path.dirname(os.path.realpath(__file__))
+samples_dir = os.path.join(chaudio_dir, "samples")
+
+if os.path.isdir(samples_dir):
+    _samples = glob.glob(samples_dir + "/*.wav")
+    samples = {}
+    for i in _samples:
+        samples[ntpath.basename(i)] = i
+else:
+    print ("warning: samples directory not found")
 
 
 # alias functions to the module name
 # to see documentation, see util.py
 note = util.note
-combine = util.combine
 times = util.times
+
 normalize = util.normalize
+combine = util.combine
+flatten = util.interleave
+flatten = util.flatten
+
 fromfile = util.fromfile
 tofile = util.tofile
-flatten = util.flatten
+fromdatastr = util.fromdatastr
+todatastr = util.todatastr
 
 # time signature class, for use with ExtendedArranger and others
 class TimeSignature:

@@ -5,36 +5,34 @@ chaudio is a collection of audio processing tools
 
 ## Usage
 
-### ex_simple.py
+### Examples
 
-Run `python3 src/ex_simple.py` to create `simple.wav`, and showcase basis synthesis with chaudio
+Located in `examples/`, multiple example use cases of chaudio are shown.
 
+To run with the development version of chaudio, prepend the PYTHONPATH environment.
 
-### ex_read.py
+`PYTHONPATH=$PWD python3 examples/{FILE}`
 
-This allows you to perform analysis on existing sound files
+Or, if chaudio is installed, just run:
 
-Run `python3 src/ex_read.py -h` for help.
+`python3 examples/{FILE}`
 
-Once you've ran `ex_simple.py`, you will have `simple.wav`, which you can use with this example:
+#### examples/simple.py
 
-`python3 src/ex_read.py simple.wav -g freq`
+This creates a WAV file (`simple.wav`) that contains 5 seconds of the note A4 as a sin waveform.
 
-to show a frequency graph of the sound
+#### examples/addnoise.py
 
+This takes an input, and an optional output (default is `addnoise.wav`). 
 
-### ex_waveform.py
+It reads in a file, adds static, then outputs the result to output.
 
-Use this to test out various waveforms:
-
-`python3 src/ex_waveform.py -w "wf.saw(t, hz, 0.78)" -g`
-
-the `-w` option refers to the wave generation. Complete this with `t`, `hz` and then an (optional) tweak value
+Run like `python3 examples/addnoise.py simple.wav -o simple_static.wav` (assuming you've ran `examples/simple.py`).
 
 
-### ex_compose.py
+#### examples/compose.py
 
-This is more in depth, how to use arrangers to string together notes, and use plugins
+This example shows how to create an entire song, efficiently and rubustly.
 
 
 ## Installation

@@ -6,6 +6,7 @@ common utilities for chaudio
 
 import chaudio
 
+import codecs
 import wave
 
 import numpy as np
@@ -78,6 +79,17 @@ def flatten(audio):
     else:
         return audio[:]
 
+# returns a single array 
+def interleave(_audio):
+    audio = flatten(_audio)
+    if isinstance(audio, tuple):
+        ret = np.empty((2 * len(audio[0]), ), dtype=audio[0].dtype)
+        ret[0::2] = audio[0]
+        ret[1::2] = audio[1]
+        return ret
+    else:
+        return audio
+
 # returns a normalized audio between -1.0 and 1.0
 def normalize(audio):
     # stereo input
@@ -103,15 +115,80 @@ def combine(audio, channels=1):
             return audio[:]
     elif channels == 2:
         if type(audio) == tuple:
-            return audio
+            return audio[:]
         else:
-            return (audio, audio)
+            return (audio[:], audio[:])
     else:
         raise ValueError("channels must be 1 or 2")
 
 # cents are a measurement of pitch change, +1200 cents = 1 octave, +100 = half step (like C to C#)
 def transpose(hz, cents=0):
     return hz * 2.0 ** (cents / 1200.0)
+
+"""
+
+internal data scheme:
+
+dtype should be np.float32 when passing through stdout
+
+The string should be like this:
+
+"dtype=<dtype>,channels=<channels>:<NUMPY DATA STRING>"
+
+like (default):
+
+"dtype=np.float32,channels=2:<HEX>"
+
+"""
+
+
+def fromdatastr(wavestring):
+    _meta = wavestring[:wavestring.index(":")]
+    _dtype, _channels = _meta.split(",")
+    channels = int(_channels.replace("channels=", ""))
+    _dtype = _dtype.replace("dtype=", "")
+
+    if _dtype == "np.float32":
+        dtype = np.float32
+    elif _dtype == "np.int16":
+        dtype = np.int16
+    else:
+        chaudio.msgprint("warning, unknown data type, assuming np.float32")
+        dtype = np.float32
+
+    eframedata = wavestring[wavestring.index(":")+1:]
+
+    sframedata64 = eframedata.encode("utf-8")
+    sframedata = codecs.decode(sframedata64, 'base64')
+
+    framedata = np.fromstring(sframedata, dtype=dtype)
+    
+    if channels == 2:
+        return (framedata[0::2], framedata[1::2])
+    else:
+        return framedata
+
+def todatastr(_data, channels=2, _dtype=np.float32):
+    data = interleave(combine(_data, channels=channels))
+    conv = None
+
+    if _dtype == np.float32:
+        dtype = "np.float32"
+        conv = 1.0
+    elif _dtype == np.int16:
+        dtype = "np.int16"
+        conv = (2.0 ** 15 - 1)
+    else:
+        chaudio.msgprint("warning, unknown data type, assuming np.float32")
+        dtype = "np.float32"
+        conv = 1.0
+    
+    wavedata = (conv * data).astype(_dtype).tostring()
+    wavestr64 = codecs.encode(wavedata, 'base64')
+    wavestr = wavestr64.decode('utf-8')
+
+    return "dtype=%s,channels=%s:%s" % (dtype, channels, wavestr)
+    
 
 
 # returns audiodata from a filename
@@ -132,7 +209,7 @@ def fromfile(filename, _channels=1, _normalize=False):
         adata = np.fromstring(framedata, dtype=np.int16)
     elif samplebytes == 3:
         # since there is no 24 bit format, we have to combine int8 's, this may create problems
-        print ("warning, 24 bit wave support may be buggy!")
+        chaudio.msgprint("warning, 24 bit wave support may be buggy!")
         u8data = np.fromstring(framedata, dtype=np.int8)
         u8pdata = u8data.astype(np.int32)
         assert(len(u8data) % 3 == 0)
@@ -150,7 +227,7 @@ def fromfile(filename, _channels=1, _normalize=False):
         adata = (adata[0::2], adata[1::2])
 
     # heads up so people know what's going on
-    print ("read from file " + filename)
+    chaudio.msgprint("read from file " + filename)
 
     # logic to return data in the format they asked for, if they ask for combine, we will always return np.ndarray
     # else, return tuple of two np.ndarray s
@@ -183,7 +260,7 @@ def tofile(filename, _audio, hz=44100):
     wout.writeframes(out.tostring())
     wout.close()
     
-    print ("wrote to file " + filename)
+    chaudio.msgprint("wrote to file " + filename)
     
 
 

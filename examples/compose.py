@@ -15,6 +15,9 @@ from chaudio.arrangers import ExtendedArranger
 # time signature (8/4, 120 bpm)
 tsig = chaudio.TimeSignature(8, 4, 120)
 
+# how many measures to copy
+measures = 4
+
 # our arrangers, which take in samples and signals
 beat = ExtendedArranger(setitem="beat", timesignature=tsig)
 bassline = ExtendedArranger(setitem="beat", timesignature=tsig)
@@ -44,97 +47,62 @@ melody.add_final_plugin(butter1)
 
 
 # read in drum samples
-bass = chaudio.fromfile("samples/bass.wav") * 1.35
-snare = chaudio.fromfile("samples/snare.wav") * 1.3
+bass = chaudio.fromfile(chaudio.samples["bass.wav"]) * 1.35
+snare = chaudio.fromfile(chaudio.samples["snare.wav"]) * 1.3
 
 hat = {
-    "opened": chaudio.fromfile("samples/hat_opened.wav") * .4,
-    "closed": chaudio.fromfile("samples/hat_closed.wav") * .4
+    "opened": chaudio.fromfile(chaudio.samples["hat_opened.wav"]) * .4,
+    "closed": chaudio.fromfile(chaudio.samples["hat_closed.wav"]) * .4
 }
 
 # set up the beat
-beat[0, 0] = bass
-beat[0, 1] = bass
-beat[0, 2] = bass
-beat[0, 3] = bass
-beat[0, 4] = bass
-beat[0, 5] = bass
-beat[0, 6] = bass
-beat[0, 7] = bass
+for b in range(0, tsig.top):
+    beat[0, b] = bass
 
-beat[0, 1] = snare
-beat[0, 1.5] = snare
-beat[0, 3] = snare
+for b in range(0, 2):
+    beat[0, b * 4 + 1] = snare
+    beat[0, b * 4 + 1.5] = snare
+    beat[0, b * 4 + 3] = snare
 
-beat[0, 5] = snare
-beat[0, 5.5] = snare
-beat[0, 7] = snare
-
-beat[0, 0] = hat["closed"]
-beat[0, 0.5] = hat["closed"]
-beat[0, 1] = hat["closed"]
-beat[0, 1.5] = hat["closed"]
-beat[0, 2] = hat["closed"]
-beat[0, 2.5] = hat["closed"]
-beat[0, 3] = hat["closed"]
-beat[0, 3.5] = hat["opened"]
-beat[0, 4] = hat["closed"]
-beat[0, 4.5] = hat["closed"]
-beat[0, 5] = hat["closed"]
-beat[0, 5.5] = hat["closed"]
-beat[0, 6] = hat["closed"]
-beat[0, 6.5] = hat["opened"]
-beat[0, 7] = hat["closed"]
-beat[0, 7.5] = hat["opened"]
-
+for b in range(0, tsig.top * 2):
+    fv = b / 2.0
+    if b in (7, 13, 15):
+        beat[0, fv] = hat["opened"]
+    else:
+        beat[0, fv] = hat["closed"]
+    
 # bassline is all in sin waves
 wave = wf.sin
 
-# notes that are .5, 1, 2 and 3 beats respectively
-th = times(tsig[0, 0.5])
-t1 = times(tsig[0, 1])
-t2 = times(tsig[0, 2])
-t3 = times(tsig[0, 3])
+# returns time array of so many beats
+t = lambda beats: times(tsig[0, beats])
 
 # chords from `lizardcrats`
-bassline[0, 0] = wave(t3, note("A3"))
-bassline[0, 3] = wave(t1, note("C3"))
-bassline[0, 4] = wave(t2, note("G2"))
-bassline[0, 6] = wave(t2, note("D3"))
+bassline[0, 0] = wave(t(3), note("A3"))
+bassline[0, 3] = wave(t(1), note("C3"))
+bassline[0, 4] = wave(t(2), note("G2"))
+bassline[0, 6] = wave(t(2), note("D3"))
 
 wave = wf.triangle
 
 # melody from `lizardcrats`
-melody[0, 1] = wave(th, note("G3"))
-melody[0, 1.5] = wave(t1, note("D3"))
-melody[0, 2.5] = wave(th, note("D3"))
-melody[0, 3] = wave(t1, note("E3"))
+melody[0, 1] = wave(t(.5), note("G3"))
+melody[0, 1.5] = wave(t(1), note("D3"))
+melody[0, 2.5] = wave(t(.5), note("D3"))
+melody[0, 3] = wave(t(1), note("E3"))
 
-melody[0, 5.5] = wave(th, note("G3"))
-melody[0, 6] = wave(th, note("D3"))
-melody[0, 6.5] = wave(th, note("D3"))
-melody[0, 7] = wave(th, note("E3"))
-melody[0, 7.5] = wave(th, note("G3"))
-
-bassline.kwargs["name"] = "bassline"
+melody[0, 5.5] = wave(t(.5), note("G3"))
+melody[0, 6] = wave(t(.5), note("D3"))
+melody[0, 6.5] = wave(t(.5), note("D3"))
+melody[0, 7] = wave(t(.5), note("E3"))
+melody[0, 7.5] = wave(t(.5), note("G3"))
 
 # insert all parts into final arranger
+for i in range(0, measures):
+    y[i, 0] = beat
+    y[i, 0] = bassline
+    y[i, 0] = melody
 
-y[0, 0] = bassline
-y[1, 0] = bassline
-y[2, 0] = bassline
-y[3, 0] = bassline
-
-y[0, 0] = melody
-y[1, 0] = melody
-y[2, 0] = melody
-y[3, 0] = melody
-
-
-y[0, 0] = beat
-y[1, 0] = beat
-y[2, 0] = beat
-y[3, 0] = beat
 
 # export to file
 chaudio.tofile("composed.wav", y)
