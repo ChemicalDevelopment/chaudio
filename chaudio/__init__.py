@@ -62,7 +62,7 @@ if os.path.isdir(samples_dir):
     for i in _samples:
         samples[ntpath.basename(i)] = i
 else:
-    print ("warning: samples directory not found")
+    chaudio.msgprint("warning: samples directory not found")
 
 
 # alias functions to the module name

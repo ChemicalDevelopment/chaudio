@@ -20,7 +20,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='chaudio',
-    version='0.0.0',
+    version='0.0.1',
 
     description='Programmatic music synthesis',
     long_description=long_description,
@@ -52,7 +52,7 @@ setup(
         'test': ['coverage'],
     },
 
-    data_files=[('samples', glob.glob('samples/*')), ('examples', glob.glob("examples/*"))],
+    data_files=[('chaudio/samples', glob.glob('chaudio/samples/*')), ('examples', glob.glob("examples/*"))],
     
     include_package_data=True,
 
