@@ -20,7 +20,7 @@
 *.ogg
 *.flac
 
-!samples/*.wav
+!chaudio/samples/*.wav
 
 __pycache__
 
