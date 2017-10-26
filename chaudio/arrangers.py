@@ -44,7 +44,7 @@ class Arranger:
         self.kwargs = kwargs
 
         # start off data as empty
-        self.data = np.zeros((0,), dtype=np.float32)
+        self.data = chaudio.Source(np.empty((0, )))
 
         # keep track of tracks that were inserted
         self.insert_calls = []
@@ -108,7 +108,7 @@ class Arranger:
     # applies the insert call to the object's data array
     def apply_insert(self, insert_call):
         key = insert_call.key
-        val = insert_call.val[:]
+        val = chaudio.flatten(insert_call.val)
         kwargs = insert_call.kwargs
 
         for plugin in self.insert_plugins:

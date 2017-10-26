@@ -21,12 +21,14 @@ if args.file == None:
     exit(1)
 
 # read in our file
-ldata, rdata = chaudio.fromfile(args.file, _channels=2)
+r = chaudio.fromfile(args.file)
 
-# add static to both sides
-ldata += .05 * chaudio.waveforms.noise(chaudio.times(ldata))
-rdata += .05 * chaudio.waveforms.noise(chaudio.times(rdata))
+# generate static
+noise = .05 * chaudio.waveforms.noise(chaudio.times(r))
+
+# add static
+r = r + noise
 
 # output to file
-chaudio.tofile(args.output, (ldata, rdata))
+chaudio.tofile(args.output, r)
 
