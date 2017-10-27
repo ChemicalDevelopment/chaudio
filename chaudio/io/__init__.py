@@ -9,6 +9,29 @@ import numpy as np
 import wave
 import io
 
+
+
+# class for file specification, really only for internal usage
+class WaveFormat(object):
+
+    def __init__(self, name, dtype, samplewidth, scale_factor):
+        self.name = name
+        self.dtype = dtype
+        self.samplewidth = samplewidth
+        self.scale_factor = scale_factor
+
+
+formats = {}
+
+formats["8i"] = WaveFormat("8i", np.int8, 1, 2.0 ** 7 - 1)
+formats["16i"] = WaveFormat("16i", np.int16, 2, 2.0 ** 15 - 1)
+formats["24i"] = WaveFormat("24i", np.int32, 3, 2.0 ** 23 - 1)
+formats["32i"] = WaveFormat("32i", np.int32, 4, 2.0 ** 31 - 1)
+
+# does not work properly
+#formats["32f"] = WaveFormat("32f", np.float32, 4, 1.0)
+
+
 # string data read from
 # essentially treat `strdata` as WAV file contents 
 def fromstring(strdata, *args, **kwargs):
@@ -60,26 +83,38 @@ def fromfile(filename):
         channel_data[i] = adata[i::channels]
 
     return chaudio.source.Source(channel_data, hz=samplehz)
-
+    
 
 # outputs Source 
-def tofile(filename, _audio, normalize=True):
-    audio = chaudio.source.Source(_audio, hz=44100, dtype=np.float32)
-    audio.channels = 2
+def tofile(filename, _audio, waveformat="16i", normalize=True):
+    audio = chaudio.source.Source(_audio, dtype=np.float32)
+    #audio.channels = 2
+
+    if type(waveformat) is str:
+        waveformat = formats[waveformat]
 
     if normalize:
         audio = chaudio.util.raw.normalize(audio)
 
     wout = wave.open(filename, 'w')
-    wout.setparams((2, 2, audio.hz, 0, 'NONE', 'not compressed'))
-
-    # scaling factor
-    scale_factor = 2.0 ** 15 - 1.0
+    wout.setparams((audio.channels, waveformat.samplewidth, audio.hz, 0, 'NONE', 'not compressed'))
 
     # pad the data with L,R,L,R
-    raw_data = np.zeros((len(audio) * audio.channels, ), dtype=np.int16)
+    raw_data = np.zeros((len(audio) * audio.channels, ), dtype=waveformat.dtype)
+
     for i in range(0, audio.channels):
-        raw_data[i::audio.channels] = scale_factor * audio[i][:]
+        raw_data[i::audio.channels] = waveformat.scale_factor * audio[i][:]
+
+    if waveformat.name == "24i":
+        chaudio.msgprint("24 bit support is spotty!")
+        tmp_data = [None] * 3
+        for i in range(0, 3):
+            tmp_data[i] = (raw_data // (256 ** i)) % 256
+
+        raw_data = np.zeros((3 * len(raw_data), ), np.int8)
+        for i in range(0, 3):
+            raw_data[i::3] = tmp_data[i]
+
 
     # tostring() returns byte data, just like it is stored by WAV format
     wout.writeframes(raw_data.tostring())

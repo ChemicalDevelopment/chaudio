@@ -35,6 +35,7 @@ import scipy
 import chaudio
 import chaudio.source
 import chaudio.arrangers
+import chaudio.plugins
 import chaudio.waves
 import chaudio.util
 import chaudio.io
@@ -63,7 +64,7 @@ def msgprint(*args, **kwargs):
 
 # prints to stdout, so that other processes in the PIPE can receive it
 def dataprint(data, *args, **kwargs):
-    sys.stdout.write(chaudio.io.raw.tofile(data, *args, **kwargs))
+    sys.stdout.write(data, *args, **kwargs)
 
 
 
@@ -75,6 +76,8 @@ defaults["hz"] = 44100
 
 # the internal data format should always be a floating point
 defaults["dtype"] = np.float64
+
+defaults["timesignature"] = TimeSignature()
 
 
 # actual module directory in the filesystem

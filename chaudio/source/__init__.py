@@ -30,6 +30,8 @@ class Source(object):
         if hz is None:
             if issubclass(type(data), Source):
                 self._hz = data.hz
+            elif issubclass(type(data), chaudio.arrangers.Arranger):
+                self._hz = data.source.hz
             else:
                 self._hz = chaudio.defaults["hz"]
         else:
@@ -38,6 +40,8 @@ class Source(object):
         if dtype is None:
             if issubclass(type(data), Source):
                 self._dtype = data.dtype
+            elif issubclass(type(data), chaudio.arrangers.Arranger):
+                self._dtype = data.source.dtype
             elif type(data) is np.ndarray:
                 self._dtype = data.dtype
             else:

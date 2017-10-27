@@ -1,8 +1,15 @@
 """
 
-essentially multiplexors and plugin chains
+essentially multiplexers and plugin chains
+
+Can record inputs, and detect if they change, and regenerate their source automatically
+
+This is essentially "smart" JIT audio production
+
+An Arranger can have another Arranger inserted, and it will keep track of whether the sources have changed, only recalculating if needed.
 
 """
+
 
 import chaudio
 
@@ -10,21 +17,22 @@ import numpy as np
 
 
 
-# simple datastructure for storing inputs so that they can be recreated
+# simple datastructure for storing inputs so that they can be recreated, and detected if they change
 class InsertCall(object):
     def __init__(self, key, val, kwargs):
         self.key = key
         self.val = val
         self.kwargs = kwargs
 
+    # should return different value if anything changed
     def __hash__(self):
-        return hash(self.key) + hash(np.sum(self.val[:])) + hash(frozenset(self.kwargs))
+        return hash(self.key) + hash(np.sum(np.array(self.val[:]) ** 2)) + hash(frozenset(self.kwargs))
 
+    # simple string form
     def __str__(self):
         return "Insert(%s, %s, %s)" % (self.key, self.val, self.kwargs)
-
-    def __repr__(self):
-        return self.__str__()
+    
+    __repr__ = __str__
 
 
 
@@ -33,7 +41,9 @@ class InsertCall(object):
 
 this class is for combining sounds together, given a point, and applying plugins:
 
-Only has support for inputting at a number of samples
+Only has support for inputting at a number of samples, serves as a base class.abs
+
+ExtendedArranger is probably the best for most users
 
 """
 
@@ -55,9 +65,9 @@ class Arranger(object):
         self.insert_plugins = []
         self.final_plugins = []
 
+        # keep track of hash so we know whether we need to update
         self.last_hash = -1
 
-        self.source_init()
 
     def get_source(self):
         self.ensure_updated_source()
@@ -75,23 +85,23 @@ class Arranger(object):
             return self.kwargs[key]
         else:
             return default
+    
+    # sets the kwargs value
+    # if replace is False, check if key is already set. If so, do not replace value
+    def setarg(self, key, val, replace=True):
+        if replace or (key not in self.kwargs):
+            self.kwargs[key] = val
 
 
     # method to tell whether the class has changed
     def __hash__(self):
         return hash(tuple(self.insert_calls)) + hash(tuple(self.insert_plugins)) + hash(tuple(self.final_plugins))
 
-    # for printing out
+    # for printing out values
     def __str__(self):
-        return "%s, len=%s, args=%s, insert_plugins: %s, final_plugins: %s" % (self.source.seconds, type(self).__name__, self.kwargs, self.insert_plugins, self.final_plugins)
+        return "%s, len=%ss, args=%s, insert_plugins: %s, final_plugins: %s, hash: %s" % (type(self).__name__, self.source.seconds, self.kwargs, self.insert_plugins, self.final_plugins, hash(self))
 
-    def __repr__(self):
-        return self.__str__()
-
-
-    # this is used by things that extend Arranger
-    def source_init(self, **kwargs):
-        pass
+    __repr__ = __str__
 
     # returns the index of the plugin added
     def add_insert_plugin(self, plugin):
@@ -183,36 +193,44 @@ class Arranger(object):
         self.ensure_updated_source()
         return self.source.__len__()
 
+"""
 
+lke arranger, but supports beats and time inserts
 
-
-
+"""
 
 
 class ExtendedArranger(Arranger):
 
-    def source_init(self, **kwargs):
-        self.hz = self.getarg("hz", 44100)
-        self.timesignature = self.getarg("timesignature", chaudio.util.TimeSignature())
-        self.setitem_type = self.getarg("setitem", "time")
+    def __init__(self, **kwargs):
+        # this weird super call is required for python2+python3 compatability
+        super(ExtendedArranger, self).__init__(**kwargs)
 
+        self.setarg("hz", chaudio.defaults["hz"], replace=False)
+        self.setarg("timesignature", chaudio.defaults["timesignature"], replace=False)
+        self.setarg("setitem", "sample", replace=False)
+
+        # different function methods to apply to insert commands (using exar[a] = b)
         self.setitem_funcs = { 
             "sample": self.insert_sample,
             "time": self.insert_time,
             "beat": self.insert_beat
         }
 
+    # inserts _data at a time (in seconds) t
     def insert_time(self, t, _data):
-        self.insert_sample(int(self.hz * t), _data)
+        self.insert_sample(int(self.getarg("hz") * t), _data)
 
+    # inserts at a beat, which the internal timesignature should handle
     def insert_beat(self, beat, _data):
-        self.insert_time(self.timesignature[beat], _data)
+        self.insert_time(self.getarg("timesignature")[beat], _data)
 
+    # finds out which method we are using, then applies it
     def __setitem__(self, key, _data):
-        if self.setitem_type in self.setitem_funcs:
-            self.setitem_funcs[self.setitem_type](key, _data)
+        if self.getarg("setitem") in self.setitem_funcs:
+            self.setitem_funcs[self.getarg("setitem")](key, _data)
         else:
-            raise Exception("setitem_type (%s) is not a valid setitem function type" % (self.setitem_type))
+            raise Exception("setitem type '%s' is not a valid setitem function type" % (self.getarg("setitem")))
 
 
 

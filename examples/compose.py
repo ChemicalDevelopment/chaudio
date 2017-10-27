@@ -111,8 +111,7 @@ for i in range(0, measures):
     y[i, 0] = bassline
     y[i, 0] = melody
 
-
 # export to file
-chaudio.tofile("composed_bassline.wav", bassline)
 chaudio.tofile("composed.wav", y)
+
 

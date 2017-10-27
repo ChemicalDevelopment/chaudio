@@ -21,6 +21,7 @@ Or, if chaudio is installed, just run:
 
 This creates a WAV file (`simple.wav`) that contains 5 seconds of the note A4 as a sin waveform.
 
+
 #### examples/addnoise.py
 
 This takes an input, and an optional output (default is `addnoise.wav`). 
