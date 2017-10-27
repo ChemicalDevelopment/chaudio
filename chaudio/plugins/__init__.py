@@ -14,7 +14,7 @@ import scipy.signal as signal
 
 
 # does nothing to audio, only stores it and retreives it, with hash to tell if it changed
-class Basic:
+class Basic(object):
     def __init__(self, start_data=None, **kwargs):
         self.kwargs = kwargs
 

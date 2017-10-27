@@ -10,7 +10,7 @@ import numpy as np
 import scipy
 import scipy.signal
 
-class Source:
+class Source(object):
     def __init__(self, data, hz=None, dtype=None):
         if issubclass(type(data), Source):
             self._data = data.copy_data()
@@ -31,7 +31,7 @@ class Source:
             if issubclass(type(data), Source):
                 self._hz = data.hz
             else:
-                self._hz = chaudio.getdefault("hz")
+                self._hz = chaudio.defaults["hz"]
         else:
             self._hz = hz
 
@@ -41,7 +41,7 @@ class Source:
             elif type(data) is np.ndarray:
                 self._dtype = data.dtype
             else:
-                self._dtype = chaudio.getdefault("dtype")
+                self._dtype = chaudio.defaults["dtype"]
         else:
             self._dtype = dtype
     
@@ -245,11 +245,25 @@ class Source:
             r.data[i] += v[i]
         return r
 
+    def __sub__(self, _v):
+        r = self.copy()
+        v = self.__opit__(_v)
+        for i in range(0, self.channels):
+            r.data[i] -= v[i]
+        return r
+
     def __mul__(self, _v):
         r = self.copy()
         v = self.__opit__(_v)
         for i in range(0, self.channels):
             r.data[i] *= v[i]
+        return r
+
+    def __div__(self, _v):
+        r = self.copy()
+        v = self.__opit__(_v)
+        for i in range(0, self.channels):
+            r.data[i] /= (v[i])
         return r
 
     def __truediv__(self, _v):
@@ -266,8 +280,29 @@ class Source:
             r.data[i] //= v[i]
         return r
 
+    def __mod__(self, _v):
+        r = self.copy()
+        v = self.__opit__(_v)
+        for i in range(0, self.channels):
+            r.data[i] %= v[i]
+        return r
+
+    def __pow__(self, _v):
+        r = self.copy()
+        v = self.__opit__(_v)
+        for i in range(0, self.channels):
+            r.data[i] **= v[i]
+        return r
+
+
     __radd__ = __add__
+    __rsub__ = __sub__
     __rmul__ = __mul__
+    __rdiv__ = __div__
+    __rtruediv__ = __truediv__
+    __rfloordiv__ = __floordiv__
+    __rmod__ = __mod__
+    __rpow__ = __pow__
 
 
 class Mono(Source):

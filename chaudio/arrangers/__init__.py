@@ -11,7 +11,7 @@ import numpy as np
 
 
 # simple datastructure for storing inputs so that they can be recreated
-class InsertCall:
+class InsertCall(object):
     def __init__(self, key, val, kwargs):
         self.key = key
         self.val = val
@@ -37,7 +37,7 @@ Only has support for inputting at a number of samples
 
 """
 
-class Arranger:
+class Arranger(object):
 
     # constructor, accepts nothing by default
     def __init__(self, **kwargs):

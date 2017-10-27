@@ -53,12 +53,12 @@ melody.add_final_plugin(lvolume)
 
 
 # read in drum samples
-bass = chaudio.fromfile(chaudio.samples["bass.wav"]) * .95
-snare = chaudio.fromfile(chaudio.samples["snare.wav"]) * .9
+bass = chaudio.samples["bass.wav"] * .95
+snare = chaudio.samples["snare.wav"] * .9
 
 hat = {
-    "opened": chaudio.fromfile(chaudio.samples["hat_opened.wav"]) * .2,
-    "closed": chaudio.fromfile(chaudio.samples["hat_closed.wav"]) * .2
+    "opened": chaudio.samples["hat_opened.wav"] * .2,
+    "closed": chaudio.samples["hat_closed.wav"] * .2
 }
 
 # set up the beat

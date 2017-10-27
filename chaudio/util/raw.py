@@ -15,11 +15,11 @@ def times(v, hz=None):
             hz = v.hz
             t = v.seconds
         elif type(v) is np.ndarray:
-            hz = chaudio.getdefault("hz")
+            hz = chaudio.defaults["hz"]
             t = len(v) / hz
         else:
-            hz = chaudio.getdefault("hz")
-        
+            hz = chaudio.defaults["hz"]
+
     if t is None:
         t = v
 

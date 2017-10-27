@@ -18,7 +18,7 @@ class TestWave(TestCase):
 
     def test_basic(self):
         t = chaudio.times(1)
-        y = chaudio.waveforms.sin(t, 1)
+        y = chaudio.waves.sin(t, 1)
         self.assertTrue(np.sum(y ** 2) > 0.0)
 
 

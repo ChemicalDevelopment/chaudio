@@ -37,9 +37,6 @@ This example shows how to create an entire song, efficiently and rubustly.
 
 ## Installation
 
-You need `python3`, and will need numpy, matplotlib, and other dependencies.
-
-Just run `pip3 install -r requirements.txt` to install all python dependencies.
-
+You need `python3`, as well as numpy, scipy, and matplotlib.
 
 
