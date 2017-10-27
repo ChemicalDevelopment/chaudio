@@ -10,8 +10,7 @@ import chaudio
 t = chaudio.times(5)
 
 # our air pressure
-y = chaudio.waveforms.sin(t, chaudio.note("A4"))
+y = chaudio.waves.sin(t, chaudio.note("A4"))
 
 # outputs the sound to `simple.wav` using default settings
 chaudio.tofile("simple.wav", y)
-

@@ -6,10 +6,10 @@ how to use Arranger 's and samples to create a song (`lizardcrats`)
 
 import chaudio
 
-import chaudio.waveforms as wf
+import chaudio.waves as wf
 
 from chaudio import (times, note)
-from chaudio.plugins import (Fade, Echo, ButterFilter)
+from chaudio.plugins import (Fade, Echo, ButterFilter, Volume)
 from chaudio.arrangers import ExtendedArranger
 
 # time signature (8/4, 120 bpm)
@@ -26,11 +26,15 @@ y = ExtendedArranger(setitem="beat", timesignature=tsig)
 
 # plugins
 fade = Fade()
-echo = Echo(amp=.6, delay=44100//3.6, decay=.5, num=12)
+echo = Echo(amp=.7, idelay=44100//8, delay=44100//4, decay=.65, num=12)
+volume = Volume(amp=2.5)
+lvolume = Volume(amp=.6)
+
 
 # butterworth plugin filters, these remove artifacts
-butter0 = ButterFilter(cutoff=100, btype="highpass")
-butter1 = ButterFilter(cutoff=18000, btype="lowpass")
+butter0 = ButterFilter(cutoff=18000, btype="lowpass")
+butter1 = ButterFilter(cutoff=30, btype="highpass")
+
 
 
 # don't add any filters to the beat, because those are drum samples, and should not be changed in any way
@@ -40,19 +44,21 @@ bassline.add_insert_plugin(fade)
 bassline.add_insert_plugin(echo)
 bassline.add_final_plugin(butter0)
 bassline.add_final_plugin(butter1)
+bassline.add_final_plugin(volume)
 
 melody.add_insert_plugin(fade)
 melody.add_final_plugin(butter0)
 melody.add_final_plugin(butter1)
+melody.add_final_plugin(lvolume)
 
 
 # read in drum samples
-bass = chaudio.fromfile(chaudio.samples["bass.wav"]) * 1.35
-snare = chaudio.fromfile(chaudio.samples["snare.wav"]) * 1.3
+bass = chaudio.fromfile(chaudio.samples["bass.wav"]) * .95
+snare = chaudio.fromfile(chaudio.samples["snare.wav"]) * .9
 
 hat = {
-    "opened": chaudio.fromfile(chaudio.samples["hat_opened.wav"]) * .4,
-    "closed": chaudio.fromfile(chaudio.samples["hat_closed.wav"]) * .4
+    "opened": chaudio.fromfile(chaudio.samples["hat_opened.wav"]) * .2,
+    "closed": chaudio.fromfile(chaudio.samples["hat_closed.wav"]) * .2
 }
 
 # set up the beat
@@ -78,10 +84,12 @@ wave = wf.sin
 t = lambda beats: times(tsig[0, beats])
 
 # chords from `lizardcrats`
-bassline[0, 0] = wave(t(3), note("A3"))
-bassline[0, 3] = wave(t(1), note("C3"))
-bassline[0, 4] = wave(t(2), note("G2"))
-bassline[0, 6] = wave(t(2), note("D3"))
+bt = t(.25)
+bassline[0, 0] = wave(bt, note("A3"))
+bassline[0, 3] = wave(bt, note("C3"))
+bassline[0, 4] = 1.25 * wave(bt, note("G2"))
+bassline[0, 6] = 1.2 * wave(bt, note("D2"))
+bassline[0, 6] = .8 * wave(bt, note("D3"))
 
 wave = wf.triangle
 
@@ -105,5 +113,6 @@ for i in range(0, measures):
 
 
 # export to file
+chaudio.tofile("composed_bassline.wav", bassline)
 chaudio.tofile("composed.wav", y)
 

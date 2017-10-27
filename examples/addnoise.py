@@ -13,6 +13,7 @@ parser = argparse.ArgumentParser(description='Add noise to a file')
 
 parser.add_argument("file", default=None, help='file to process')
 parser.add_argument("-o", "--output", default="addnoise.wav", help='output file')
+parser.add_argument("-n", "--noise", default=.08, type=float, help='how much noise to add')
 
 args = parser.parse_args()
 
@@ -23,11 +24,8 @@ if args.file == None:
 # read in our file
 r = chaudio.fromfile(args.file)
 
-# generate static
-noise = .05 * chaudio.waveforms.noise(chaudio.times(r))
-
 # add static
-r = r + noise
+r = r + args.noise * chaudio.waves.noise(chaudio.times(r))
 
 # output to file
 chaudio.tofile(args.output, r)

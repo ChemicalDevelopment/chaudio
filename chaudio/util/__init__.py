@@ -1,37 +1,48 @@
 """
 
-this module is for utility functions:
-
-raw.py contains utilities for operating on straight data arrays (mono np arrays), frequencies, etc
-
-io.py is for input output (files, strings)
-
-this file is for major utils, and typically applies to a chaudio.Source, or generics
+utilities
 
 """
 
-from chaudio.util import raw
-from chaudio.util import io
 import chaudio
 
-import numpy as np
+import chaudio.util.raw
+import chaudio.util.freq
 
-# returns a single audio. This will sound weird with multiple channels
-def flatten(audio):
-    return chaudio.Source(audio).flatten()
 
-# returns the normalization factor (the range of values) for dtype
-def norm_factor(dtype):
-    if dtype in (float, np.float32):
-        return 1.0
-    elif dtype in (np.int8, ):
-        return 2.0 ** 7 - 1.0
-    elif dtype in (int, np.int16):
-        return 2.0 ** 15 - 1.0
-    elif dtype in (np.int32, ):
-        return 2.0 ** 31 - 1.0
-    else:
-        raise Exception("unknown dtype %s" % (dtype, ))
-        return 1.0
+
+
+
+# time signature class, for use with ExtendedArranger and others
+class TimeSignature:
+    # default is 4/4
+    def __init__(self, top=4, bottom=4, bpm=80):
+        self.bpm = bpm
+        self.top = top
+        self.bottom = bottom
+
+
+    # time[a, b] returns the time (in seconds) of the b'th beat of the a'th measure
+    def __getitem__(self, key):
+        if type(key) != tuple:
+            raise KeyError("TimeSignature key should be tuple (timesig[a,b])")
+
+        measure, beat = key
+
+        if beat >= self.top:
+            raise ValueError("beat for time signature should be less than top value (err %s >= %s)" % (beat, self.top))
+
+        return 60.0 * (self.top * measure + beat) / self.bpm
+    
+    # so you can print out time signatures
+    def __str__(self):
+        return "%d/%d" % (self.top, self.bottom)
+
+    def __repr__(self):
+        return self.__str__()
+
+
+
+
 
 

@@ -33,7 +33,7 @@ def square(t, hz, tweak=None):
         return 2 * (((t * hz) % 1.0) > tweak) - 1
 
 def triangle(t, hz, tweak=None):
-    base_triangle = np.abs(4 * ((t * hz + .75) % 1.0) - 2) - 1
+    base_triangle = np.abs(4 * ((t * hz + .5) % 1.0) - 2) - 1
     if tweak is None:
         return base_triangle
     else:
