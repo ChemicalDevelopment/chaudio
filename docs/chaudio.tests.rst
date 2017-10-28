@@ -4,14 +4,9 @@ chaudio\.tests package
 Submodules
 ----------
 
-chaudio\.tests\.test\_waveforms module
---------------------------------------
+.. toctree::
 
-.. automodule:: chaudio.tests.test_waveforms
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
+   chaudio.tests.test_waveforms
 
 Module contents
 ---------------

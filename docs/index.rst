@@ -15,11 +15,6 @@ This is the online user documentation for ``chaudio``. You can see all the sourc
     api_reference
 
 
-Main module:
-
-.. automodule:: chaudio
-
-
 Indices and tables
 ==================
 

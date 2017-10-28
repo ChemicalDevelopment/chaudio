@@ -16,14 +16,9 @@ Subpackages
 Submodules
 ----------
 
-chaudio\.waves module
----------------------
+.. toctree::
 
-.. automodule:: chaudio.waves
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
+   chaudio.waves
 
 Module contents
 ---------------
