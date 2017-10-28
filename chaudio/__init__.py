@@ -1,19 +1,13 @@
 """
+.. currentmodule:: chaudio
 
-chaudio - ChemicalDevelopment audio
-
-Contains libraries for all sorts of sound processing.
-
-From the math to WAVE IO, it's all here
-
-C ChemicalDevelopment 2017
-
-Authors:
-  - Cade Brown <cade@cade.site>
+Programmatic Music Synthesis (:mod:`chaudio`)
+====================================================
 
 
-links:
-  - http://github.com/chemicaldevelopment/chaudio
+:mod:`chaudio.waves`
+
+:mod:`chaudio.util`
 
 """
 
@@ -77,7 +71,7 @@ defaults["hz"] = 44100
 # the internal data format should always be a floating point
 defaults["dtype"] = np.float64
 
-defaults["timesignature"] = TimeSignature()
+defaults["timesignature"] = TimeSignature(4, 4)
 
 
 # actual module directory in the filesystem

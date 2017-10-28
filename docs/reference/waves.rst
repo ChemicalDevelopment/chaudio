@@ -1,0 +1,3 @@
+
+.. automodule:: chaudio.waves
+

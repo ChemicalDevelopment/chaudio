@@ -7,11 +7,13 @@ This is the online user documentation for ``chaudio``. You can see all the sourc
 
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+    :maxdepth: 2
+    :caption: Contents:
 
-   installing
-   getting_started
+    installing
+    getting_started
+
+.. automodule:: chaudio
 
 
 Indices and tables
