@@ -4,12 +4,12 @@ reading in a file, add noise and then output it
 
 """
 
-import chaudio
-
 # accept commandline arguments
 import argparse
 
-parser = argparse.ArgumentParser(description='Add noise to a file')
+import chaudio
+
+parser = argparse.ArgumentParser(description='Add noise to audio')
 
 parser.add_argument("file", default=None, help='file to process')
 parser.add_argument("-o", "--output", default="addnoise.wav", help='output file')

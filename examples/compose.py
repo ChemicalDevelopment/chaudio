@@ -1,55 +1,64 @@
 """
 
-how to use Arranger 's and samples to create a song (`lizardcrats`)
+creating a song (inspired by Lizardcrats) using the more advanced parts of the library (plugins, arrangers)
+
+essentially, the function of an arranger is to:
+  - combine other arrangers and sources, essentially the main functionality of chaudio
+  - record each operation, and recalculate the result if any source changes
+
+the recalculation occurs if:
+  - a new source/arranger is inserted
+  - a new plugin is added
+
+a plugin can be applied as a 'insert' plugin (which is ran on audio as it is inserted), or a 'final' plugin (which are ran on the result of all insert plugins)
+
 
 """
 
 import chaudio
 
-import chaudio.waves as wf
-
 from chaudio import (times, note)
-from chaudio.plugins import (Fade, Echo, ButterFilter, Volume)
+from chaudio.plugins import (Fade, Echo, Butter, Volume)
 from chaudio.arrangers import ExtendedArranger
 
 # time signature (8/4, 120 bpm)
 tsig = chaudio.TimeSignature(8, 4, 120)
 
-# how many measures to copy
+# how many times to repeat the bar
 measures = 4
 
-# our arrangers, which take in samples and signals
+# our arrangers, which take in sources, as well as other arrangers
 beat = ExtendedArranger(setitem="beat", timesignature=tsig)
 bassline = ExtendedArranger(setitem="beat", timesignature=tsig)
 melody = ExtendedArranger(setitem="beat", timesignature=tsig)
+
+# our final arranger, which the other three will be inserted into
 y = ExtendedArranger(setitem="beat", timesignature=tsig)
 
-# plugins
+
+# plugins to use
 fade = Fade()
-echo = Echo(amp=.7, idelay=44100//8, delay=44100//4, decay=.65, num=12)
-volume = Volume(amp=2.5)
-lvolume = Volume(amp=.6)
+echo = Echo(amp=.7, delay=tsig[0, .25], decay=.8, num=20)
+
+# butterworth plugin filters, these remove extremely low and high frequencies
+butter0 = Butter(cutoff=20000, btype="lowpass")
+butter1 = Butter(cutoff=30, btype="highpass")
 
 
-# butterworth plugin filters, these remove artifacts
-butter0 = ButterFilter(cutoff=18000, btype="lowpass")
-butter1 = ButterFilter(cutoff=30, btype="highpass")
+# don't add any filters to the beat, because they are samples
 
-
-
-# don't add any filters to the beat, because those are drum samples, and should not be changed in any way
-
-# the baseline should echo, in addition to everything the melody does
+# the baseline should echo, and needs to be louder
 bassline.add_insert_plugin(fade)
 bassline.add_insert_plugin(echo)
-bassline.add_final_plugin(butter0)
-bassline.add_final_plugin(butter1)
-bassline.add_final_plugin(volume)
+bassline.add_final_plugin(Volume(amp=3))
 
 melody.add_insert_plugin(fade)
-melody.add_final_plugin(butter0)
-melody.add_final_plugin(butter1)
-melody.add_final_plugin(lvolume)
+melody.add_final_plugin(Volume(amp=.6))
+
+
+# this will affect all things in the arranger (including drum samples), so the cutoffs have to not remove crucial information (20000 and 30 are pretty good values)
+y.add_final_plugin(butter0)
+y.add_final_plugin(butter1)
 
 
 # read in drum samples
@@ -61,39 +70,47 @@ hat = {
     "closed": chaudio.samples["hat_closed.wav"] * .2
 }
 
-# set up the beat
-for b in range(0, tsig.top):
+# set up the beat (assume the beat is one measure, so all should be like beat[0, X], using 0)
+
+# bass hit every beat
+for b in range(0, tsig.beats):
     beat[0, b] = bass
 
-for b in range(0, 2):
-    beat[0, b * 4 + 1] = snare
-    beat[0, b * 4 + 1.5] = snare
-    beat[0, b * 4 + 3] = snare
+# snare hit on off beats (1, 3, 5, 7)
+for b in range(1, tsig.beats, 2):
+    beat[0, b] = snare
+    # on beats 1 and 5, a second snare hit happens a quarter note after, but slightly softer
+    if b % 4 == 1:
+        beat[0, b + .5] = snare * .72
 
-for b in range(0, tsig.top * 2):
-    fv = b / 2.0
-    if b in (7, 13, 15):
-        beat[0, fv] = hat["opened"]
+# the hat is going twice per beat, with some open samples
+for b in range(0, tsig.beats):
+    beat[0, b] = hat["closed"]
+    # on these beats, the second hat should be opened
+    if b in (3, 5, 7):
+        beat[0, b + .5] = hat["opened"]
     else:
-        beat[0, fv] = hat["closed"]
-    
+        beat[0, b + .5] = hat["closed"]
+
 # bassline is all in sin waves
-wave = wf.sin
+wave = chaudio.waves.sin
 
 # returns time array of so many beats
 t = lambda beats: times(tsig[0, beats])
 
-# chords from `lizardcrats`
-bt = t(.25)
+# notes from Lizardcrats
+# the bass time should only be .25 beats, because echo is applied. we want the main sound to end
+bt = t(.2)
 bassline[0, 0] = wave(bt, note("A3"))
 bassline[0, 3] = wave(bt, note("C3"))
-bassline[0, 4] = 1.25 * wave(bt, note("G2"))
-bassline[0, 6] = 1.2 * wave(bt, note("D2"))
-bassline[0, 6] = .8 * wave(bt, note("D3"))
+bassline[0, 4] = wave(bt, note("G2"))
+bassline[0, 6] = wave(bt, note("D2"))
 
-wave = wf.triangle
 
-# melody from `lizardcrats`
+# triangle wave for the melody
+wave = chaudio.waves.triangle
+
+# melody from Lizardcrats
 melody[0, 1] = wave(t(.5), note("G3"))
 melody[0, 1.5] = wave(t(1), note("D3"))
 melody[0, 2.5] = wave(t(.5), note("D3"))
@@ -105,13 +122,20 @@ melody[0, 6.5] = wave(t(.5), note("D3"))
 melody[0, 7] = wave(t(.5), note("E3"))
 melody[0, 7.5] = wave(t(.5), note("G3"))
 
-# insert all parts into final arranger
+# insert all parts into final arranger, however many times are specified (by default, 4)
 for i in range(0, measures):
     y[i, 0] = beat
     y[i, 0] = bassline
     y[i, 0] = melody
 
+
 # export to file
 chaudio.tofile("composed.wav", y)
+
+# you can just output the bassline, for example
+#chaudio.tofile("composed_bassline.wav", bassline)
+
+# cool audio effects when it is low poly
+#chaudio.tofile("composed_8i.wav", y, "8i")
 
 

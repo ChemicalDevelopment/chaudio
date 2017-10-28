@@ -1,16 +1,17 @@
 """
 
-chaudio setup tools
+chaudio setup tools, for installation
 
 """
 
-# Always prefer setuptools over distutils
-from setuptools import setup, find_packages
-# To use a consistent encoding
-from codecs import open
 import glob
 from os import path
 
+# always prefer setuptools over distutils
+from setuptools import setup
+
+
+# the location of the setup file
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
@@ -42,10 +43,6 @@ setup(
 
     test_suite="chaudio.tests",
 
-    # Alternatively, if you want to distribute just a my_module.py, uncomment
-    # this:
-    #   py_modules=["my_module"],
-
     install_requires=['numpy', 'scipy', 'matplotlib'],
 
     extras_require={
@@ -58,15 +55,3 @@ setup(
 
 )
 
-# figure this out
-"""
-    # To provide executable scripts, use entry points in preference to the
-    # "scripts" keyword. Entry points provide cross-platform support and allow
-    # pip to create the appropriate form of executable for the target platform.
-    entry_points={
-        'console_scripts': [
-            'sample=sample:main',
-        ],
-    },
-
-"""

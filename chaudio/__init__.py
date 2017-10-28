@@ -45,7 +45,7 @@ import chaudio.io
 
 # functions
 
-times = chaudio.util.raw.times
+times = chaudio.util.times
 note = chaudio.util.freq.note
 
 tofile = chaudio.io.tofile

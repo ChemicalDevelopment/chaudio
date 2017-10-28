@@ -16,7 +16,6 @@ import chaudio
 import numpy as np
 
 
-
 # simple datastructure for storing inputs so that they can be recreated, and detected if they change
 class InsertCall(object):
     def __init__(self, key, val, kwargs):
@@ -33,7 +32,6 @@ class InsertCall(object):
         return "Insert(%s, %s, %s)" % (self.key, self.val, self.kwargs)
     
     __repr__ = __str__
-
 
 
 
@@ -69,6 +67,7 @@ class Arranger(object):
         self.last_hash = -1
 
 
+    # getter setters that ensure the internal source is updated
     def get_source(self):
         self.ensure_updated_source()
         return self._source
@@ -79,7 +78,7 @@ class Arranger(object):
     source = property(get_source, set_source)
 
 
-    # returns kwarg passed, or default if none is there
+    # returns kwarg passed, or default if no kwarg is given
     def getarg(self, key, default=None):
         if key in self.kwargs:
             return self.kwargs[key]
@@ -127,8 +126,7 @@ class Arranger(object):
         else:
             self.final_plugins.remove(plugin)
 
-
-    # applies the insert call to the object's data array
+    # applies the insert call to the object's internal source
     def apply_insert(self, insert_call):
         key = insert_call.key
         val = chaudio.source.Source(insert_call.val)
@@ -139,13 +137,13 @@ class Arranger(object):
         for plugin in self.insert_plugins:
             val = plugin.process(val)
         
-        if len(self._source[0]) < key+len(val):
+        if len(self._source[0]) < key + len(val):
             self._source.ensure(length=key+len(val))
 
         for i in range(0, self._source.channels):
             self._source[i,key:key+len(val)] += val[i]
 
-    # ensures source is updated, returns true if it needed to update
+    # ensures source is updated, returns true if it required an update
     def ensure_updated_source(self):
         chash = hash(self)
         if chash != self.last_hash:
@@ -156,15 +154,22 @@ class Arranger(object):
             return False
 
 
-    # force updates the source
+    # force updates the source. No other classes should call this method; the arranger class figures out if it needs to update
     def update_source(self):
-        self._source = chaudio.Source(np.empty((0, )))
+        hz, channels, dtype = int(self._source.hz), int(self._source.channels), self._source.dtype
 
+        self._source = chaudio.Source(np.empty((0, )), hz=hz, dtype=dtype)
+        self._source.channels = channels
+        
         for insert_call in self.insert_calls:
             self.apply_insert(insert_call)
 
         for plugin in self.final_plugins:
             self._source = plugin.process(self._source)
+
+        self._source.dtype = dtype
+        self._source.hz = hz
+        self._source.channels = channels
 
 
     # adds 'data' to self.source, offset by sample
@@ -175,7 +180,8 @@ class Arranger(object):
         if sample < 0:
             raise KeyError("Arranger insert_sample, sample must be > 0")
 
-        # create a new insert call so that this can be recalculated
+        # create a new insert call so that this can be recalculated, even though it is not instantly computed.
+        # this is because it works like a JIT compiler
         self.insert_calls += [InsertCall(sample, _data, kwargs)]
 
 
@@ -183,7 +189,7 @@ class Arranger(object):
     def __setitem__(self, key, _val):
         self.insert_sample(key, _val)
         
-    # treats the arrangement as a numpy array
+    # essentially an aliase for self.source.__getitem__, but it ensures source is updated
     def __getitem__(self, key):
         self.ensure_updated_source()
         return self.source[key]
@@ -198,7 +204,6 @@ class Arranger(object):
 lke arranger, but supports beats and time inserts
 
 """
-
 
 class ExtendedArranger(Arranger):
 
@@ -221,7 +226,7 @@ class ExtendedArranger(Arranger):
     def insert_time(self, t, _data):
         self.insert_sample(int(self.getarg("hz") * t), _data)
 
-    # inserts at a beat, which the internal timesignature should handle
+    # inserts at a beat, which the internal timesignature should handle and return a time for
     def insert_beat(self, beat, _data):
         self.insert_time(self.getarg("timesignature")[beat], _data)
 
@@ -231,12 +236,3 @@ class ExtendedArranger(Arranger):
             self.setitem_funcs[self.getarg("setitem")](key, _data)
         else:
             raise Exception("setitem type '%s' is not a valid setitem function type" % (self.getarg("setitem")))
-
-
-
-
-    
-
-
-
-

@@ -1,6 +1,6 @@
 """
 
-frequency manipulation
+frequency manipulation, hz and whatnot
 
 """
 
@@ -32,7 +32,7 @@ valid_octaves = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 def transpose(hz, cents=0):
     return hz * 2.0 ** (cents / 1200.0)
 
-
+# returns frequency from a name
 def note(name):
     note_name = ""
     for i in name:
