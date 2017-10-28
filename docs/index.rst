@@ -12,6 +12,10 @@ This is the online user documentation for ``chaudio``. You can see all the sourc
 
     installing
     getting_started
+    api_reference
+
+
+Main module:
 
 .. automodule:: chaudio
 
