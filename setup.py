@@ -15,13 +15,13 @@ from setuptools import setup
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+with open(path.join(here, 'README.md')) as f:
     long_description = f.read()
 
 
 setup(
     name='chaudio',
-    version='0.0.1',
+    version='0.0.2',
 
     description='Programmatic music synthesis',
     long_description=long_description,
@@ -43,7 +43,7 @@ setup(
 
     test_suite="chaudio.tests",
 
-    install_requires=['numpy', 'scipy', 'matplotlib'],
+    install_requires=['numpy', 'scipy'],
 
     extras_require={
         'test': ['coverage'],
