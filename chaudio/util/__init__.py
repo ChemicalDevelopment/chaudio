@@ -7,81 +7,207 @@ Utility Functions (:mod:`chaudio.util`)
 This module provides useful utilities and classes to be used elsewhere. Note that most of these functions are aliased directly to the main :mod:`chaudio` module. Ones that are not aliased are often lower level and may not support all input types.
 
 
-
-Utility Classes
----------------
-
-.. autosummary::
-    :toctree: classes
-
-    TimeSignature
-
-
-Utility Functions
------------------
-
-.. autosummary::
-    :toctree: functions
-
-    times
-    normalize
-
-DONE
-
 """
 
 import numpy as np
 
 import chaudio
-import chaudio.util.freq
 
 
-# returns array of sample times
-# if a time (in seconds) is returned, the default hz value from chaudio.defaults is taken if hz==None
-# if it's a source, we get how many seconds it lasts, and duplicate an array that would fit it
+valid_note_names = {
+    "Ab": 25.95654359874657, 
+    "A": 27.5, 
+    "A#": 29.13523509488062, 
+    "Bb": 29.13523509488062, 
+    "B": 30.867706328507758, 
+    "C": 32.70319566257483,
+    "C#": 34.64782887210901, 
+    "Db": 34.64782887210901, 
+    "D": 36.70809598967595, 
+    "D#": 38.890872965260115, 
+    "Eb": 38.890872965260115, 
+    "E": 41.20344461410874, 
+    "F": 43.653528929125486, 
+    "F#": 46.2493028389543, 
+    "Gb": 46.2493028389543, 
+    "G": 48.99942949771866,
+    "G#": 51.91308719749314, 
+}
+
+valid_octaves = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+
+
 def times(t, hz=None):
-    """
+    """Returns time sample values
 
-    Returns an array representing time values of samples.
+    Returns an np.ndarray of time values representing points taken for ``t`` seconds, at samplerate ``hz``.
 
-    :param t: A value representing a number of seconds
-    :type t: float, int, numpy array, chaudio.source.Source
-    :rtype: a numpy array
+    The length of the resulting object is ``t * hz``
+
+    Parameters
+    ----------
+    t : float, int, np.ndarray, chaudio.source.Source
+        If float or int, it represents the number of seconds to generate time sample values for. If a numpy ndarray, it assumes the number of seconds is ``len(t)/hz``. If it is a chaudio.source.Source, it gets the number of seconds and sample rate (if ``hz`` is ``None``), and uses those.
+
+    hz : float, int
+        The sample rate (samples per second)
+
+    Returns
+    -------
+    np.ndarray
+        An array of time sample values, taken at ``hz`` samples per second, and lasting ``t`` (or value derived from ``t``) seconds.
 
     """
     
     _t = None
     if hz is None:
         if issubclass(type(t), chaudio.source.Source):
-            hz = v.hz
-            _t = v.seconds
+            hz = t.hz
         elif type(t) is np.ndarray:
             hz = chaudio.defaults["hz"]
-            _t = len(v) / hz
         else:
             hz = chaudio.defaults["hz"]
 
     if _t is None:
-        _t = t
+        if issubclass(type(t), chaudio.source.Source):
+            _t = t.seconds
+        elif type(t) is np.ndarray:
+            _t = len(t) / hz
+        else:
+            _t = t
 
     return np.arange(0, _t, 1.0 / hz)
 
+
+def transpose(hz, cents):
+    """Transposes a frequency value by a number of `cents <https://en.wikipedia.org/wiki/Cent_(music)>`_
+
+    Note that if both ``hz`` and ``cents`` are np arrays, their shapes must be equivalent.
+
+    The effects are thus: +1200 cents results in a shift up one octave, -1200 is a shift down one octave.
+
+
+    Parameters
+    ----------
+    hz : float, int, np.ndarray
+        Frequency, in oscillations per second
+
+    cents : float, int, np.ndarray
+        The number of cents to transpose ``hz``. It can be positive or negative.
+
+    Returns
+    -------
+    float
+        Frequency, in hz, of ``hz`` shifted by ``cents``
+
+    """
+    return hz * 2.0 ** (cents / 1200.0)
+
+
+def note(name):
+    """Frequency (in hz) of the note as indicated by ``name``
+
+    ``name`` should begin with a note name (like ``A``, ``B``, ``C``, ... , ``G``), then optionally a ``#`` or ``b`` reflecting a sharp or flat (respectively) tone, and finally an optional octave number (starting with ``0`` up to ``8``).
+
+    If no octave number is given, it defaults to ``4``.
+
+    Parameters
+    ----------
+    name : str
+        String representation of a note, like ``A`` or ``C#5``
+
+    Returns
+    -------
+    float
+        Frequency, in hz, of the note described by ``name``
+
+    Examples
+    --------
+
+    >>> chaudio.note("A")
+    440.0
+    >>> chaudio.note("A5")
+    880.0
+    >>> chaudio.note("A#5")
+    932.327523
+    >>> chaudio.note("TESTING7")
+    ValueError: invalid note name: TESTING
+
+    """
+
+    note_name = ""
+    for i in name:
+        if not i.isdigit():
+            note_name += i
+        else:
+            break
+
+    octave_number = name.replace(note_name, "")
+
+    if octave_number == "":
+        octave_number = 4
+    else:
+        octave_number = int(octave_number)
+
+    if note_name not in valid_note_names.keys():
+        raise ValueError("invalid note name: %s" % (note_name))
+
+    if octave_number not in valid_octaves:
+        raise ValueError("invalid octave number: %s" % (octave_number))
+
+    return valid_note_names[note_name] * (2.0 ** octave_number)
+    
+
+
 # returns smallest normalization factor, such that -1.0<=v/normalize_factor(v)<=1.0, for all values in the array
 def normalize_factor(v):
+    """The factor needed to scale ``v`` in order to normalize to [-1.0, +1.0] range
+
+    In the case that ``v`` is a chaudio.source.Source, return the highest of any sample in any channel.
+
+    Parameters
+    ----------
+    v : chaudio.source.Source or np.ndarray
+        The collection of amplitudes
+
+    Returns
+    -------
+    float
+        The highest maximum amplitude of the absolute value of ``v``
+
+    """
+
+    res = None
     if issubclass(type(v), chaudio.source.Source):
-        return max([normalize_factor(i) for i in v.data])
+        res = max([normalize_factor(i) for i in v.data])
     elif type(v) is np.ndarray:
-        return np.max(np.abs(v))
+        res = np.max(np.abs(v))
     else:
         raise Exception("don't know how to normalize '%s'" % type(v).__name__)
 
-# returns a normalized vector
-def normalize(v):
-    fact = normalize_factor(v)
-    if fact == 0:
-        return v
+    if res == 0:
+        return 1.0
     else:
-        return v / fact
+        return res
+
+def normalize(v):
+    """Return a scaled version of ``v`` in the [-1.0, +1.0] range
+
+    Normalize ``v`` such that all values are scaled by the same linear factor, and :math:`-1.0 <= k <= +1.0` for all values ``k`` in ``v``. If given a chaudio.source.Source, all channels are scaled by the same factor (so that the channels will still be even).
+
+    Parameters
+    ----------
+    v : chaudio.source.Source or np.ndarray
+        The source being normalized
+
+    Returns
+    -------
+    chaudio.source.Source or np.ndarray
+        ``v`` such that all amplitudes have been scaled to fit inside the [-1.0, +1.0] range
+
+    """
+
+    return v / normalize_factor(v)
 
 
 class TimeSignature:
@@ -89,20 +215,31 @@ class TimeSignature:
 
     Represents a `time signature <https://en.wikipedia.org/wiki/Time_signature>`_.
 
+
     """
 
     def __init__(self, beats, division, bpm=80):
-        """
-        Initializes the timesignature to have ``beats`` number of pulses per measure, with the note represented as ``division`` getting a single beat.
+        """TimeSignature creation routine
 
-        If division is 4, the quarter note gets the beat, 8 means the 8th note gets the beat, etc
+        Return a time signature representing measures each with ``beats`` beats (or pulses).
 
-        :param beats: The number of beats (or pulses) per measure
-        :type beats: int, float
-        :param division: The note division that represents a single pulse
-        :type division: int, float
-        :param bpm: The speed, in beats per minute
-        :type bpm: int, float (optional)
+        The note represented as ``division`` getting a single beat.
+
+        If division is 4, the quarter note gets the beat, 8 means the 8th note gets the beat, and so on.
+
+        Parameters
+        ----------
+        v : chaudio.source.Source or np.ndarray
+            The source being normalized
+
+        beats : int, float
+            Number of beats (or pulses) per measure
+        
+        division : int, float
+            Note division that represents a single pulse
+
+        bpm : int, optional
+            The speed, in beats per minute
 
         """
 
@@ -112,8 +249,7 @@ class TimeSignature:
 
 
     def __getitem__(self, key):
-        """
-        Returns the time in seconds of a number of beats, or a number of measures and beats.
+        """Returns the time in seconds of a number of beats, or a number of measures and beats.
 
         (this method is an alias for subscripting, so ``tsig.__getitem__(key)`` is equivelant to ``tsig[key]``)
 
@@ -123,11 +259,18 @@ class TimeSignature:
 
         When calling using a ``key`` that is a tuple, ``key[1]`` must not exceed the number of beats. This is to prevent errors arising from improper lengths. However, the number of beats can be any non-negative value if using a key that is a float or int.
 
-        :param key: Either a tuple containing (measure, beat), or a number of beats
-        :type key: int, float, or tuple
-        :rtype: float
+        Parameters
+        ----------
+        key : int, float, tuple
+            Either a tuple containing (measure, beat), or a number of beats
+
+        Returns
+        -------
+        float
+            The amount of time that ``key`` represents (in seconds)
 
         """
+
         if type(key) not in (tuple, float, int):
             raise KeyError("TimeSignature key should be tuple (timesig[a,b] or timesig[a])")
 
@@ -147,13 +290,10 @@ class TimeSignature:
         return 60.0 * (self.beats * measure + beat) / self.bpm
     
 
-    # so you can print out time signatures
     def __str__(self):
         return "%d/%d" % (self.beats, self.division)
 
     __repr__ = __str__
-
-
 
 
 

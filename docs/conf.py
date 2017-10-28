@@ -37,7 +37,9 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
-    'sphinx.ext.autodoc'
+    'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
+    'sphinx_automodapi.automodapi'
 ]
 
 autosummary_generate = True
@@ -46,11 +48,12 @@ autodoc_docstring_signature = True
 
 autodoc_member_order = 'bysource'
 
+
 autodoc_default_flags = [
     'members',
-    'private-members',
+    #'private-members',
     'special-members',
-#    'undoc-members',
+    #'undoc-members',
     #'show-inheritance'
 ]
 

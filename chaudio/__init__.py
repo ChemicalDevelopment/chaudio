@@ -4,10 +4,15 @@
 Programmatic Music Synthesis (:mod:`chaudio`)
 ====================================================
 
+Submodules:
 
-:mod:`chaudio.waves`
 
-:mod:`chaudio.util`
+.. autosummary::
+    :toctree: submodules
+
+    waves
+    util
+
 
 """
 
@@ -40,7 +45,7 @@ import chaudio.io
 # functions
 
 times = chaudio.util.times
-note = chaudio.util.freq.note
+note = chaudio.util.note
 
 tofile = chaudio.io.tofile
 fromfile = chaudio.io.fromfile
@@ -92,10 +97,18 @@ class Samples:
     def __getitem__(self, key):
         return fromfile(self.fullpaths[key])
     
+    # returns
+    def __str__(self):
+        return self.fullpaths.keys()
+
+    __repr__ = __str__
+
+
+#samples = None
+
 # if the samples are found, create an object for people asking for samples
 if os.path.isdir(samples_dir):
     samples = Samples(glob.glob(samples_dir + "/*.wav"))
 else:
     chaudio.msgprint("warning: samples directory not found")
-    samples = None
 
