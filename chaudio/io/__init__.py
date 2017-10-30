@@ -48,9 +48,7 @@ formats["32i"] = WaveFormat("32i", np.int32, 4, 2.0 ** 31 - 1)
 
 
 def fromfile(filename):
-    """Returns file contents of a WAVE file
-
-    Returns the values (in correct channels) of a WAVE file (either by string name, or file pointer), returned with dtype of np.float32.
+    """Returns file contents of a WAVE file (either name or file pointer) as a :class:`chaudio.source.Source`
 
     Note that they are not "normalized" as in using :meth:`chaudio.util.normalize`, but rather simply converted from the internal WAVE formats (which are integers), and divided by the maximum integer of that size. That way, all WAVE formats will return (within rounding) the same result when called with this function, so the original volume is conserved. This is the behaviour audacity has when reading files, which is to convert to 32f format internally.
 
@@ -114,16 +112,12 @@ def fromfile(filename):
     return chaudio.source.Source(channel_data, hz=samplehz)
     
 def fromstring(strdata, *args, **kwargs):
-    """Returns file contents of a WAVE file
-
-    Returns the values (in correct channels) of a WAVE file (either by string name, or file pointer), returned with dtype of np.float32.
-
-    Note that they are not "normalized" as in using :meth:`chaudio.util.normalize`, but rather simply converted from the internal WAVE formats (which are integers), and divided by the maximum integer of that size. That way, all WAVE formats will return (within rounding) the same result when called with this function, so the original volume is conserved. This is the behaviour audacity has when reading files, which is to convert to 32f format internally.
+    """Treat the input as WAVE file contents, and return a :class:`chaudio.source.Source`.
 
     Parameters
     ----------
-    filename : str, file
-        If a string, that file is opened, or if it is a file object already (which can be an io.StringIO object), that is used instead of opening another.
+    strdata : str
+        Treat ``strdata`` as the WAVE file contents
 
     Returns
     -------
@@ -136,6 +130,27 @@ def fromstring(strdata, *args, **kwargs):
 
 
 def tofile(filename, _audio, waveformat="16i", normalize=True):
+    """Output some sort of audio to a file (which can be a name or file pointer).
+
+    Always to WAVE format, and specify ``waveformat`` in order to change what kind. Default, it is 16 bit integer (CD quality).
+
+    Parameters
+    ----------
+    filename : str, file
+        If a string, that file is opened, or if it is a file object already (which can be an io.StringIO object), that is used instead of opening another.
+    
+    _audio : np.ndarray, :class:`chaudio.source.Source`, :class:`chaudio.source.Arranger`
+        Casts ``_audio`` to a :class:`chaudio.source.Source`, which will work on any chaudio type. You shouldn't have to worry about this, it stays truthful to the input.
+
+    waveformat : { '8i', '16i', '24i', '32i' }
+        Describes the number of bits per sample, and what type of data to write ('i' is integer).
+
+    normalize : bool
+        Whether or not to normalize before writing. This should be the default, to avoid any clipping.
+
+
+    """
+
     audio = chaudio.source.Source(_audio, dtype=np.float32)
 
     # detect wave format
@@ -177,8 +192,30 @@ def tofile(filename, _audio, waveformat="16i", normalize=True):
 
 
 
-
 def tostring(_audio, *args, **kwargs):
+    """Returns the WAVE file contents. Essentially returns what :meth:`chaudio.io.tofile` would have written to a file.
+
+    Parameters
+    ----------
+
+    _audio : np.ndarray, :class:`chaudio.source.Source`, :class:`chaudio.source.Arranger`
+        Casts ``_audio`` to a :class:`chaudio.source.Source`, which will work on any chaudio type. You shouldn't have to worry about this, it stays truthful to the input.
+
+    waveformat : { '8i', '16i', '24i', '32i' }
+        Describes the number of bits per sample, and what type of data to write ('i' is integer).
+
+    normalize : bool
+        Whether or not to normalize before writing. This should be the default, to avoid any clipping.
+
+    Returns
+    -------
+    str
+        An str representing the WAVE file contents.
+
+    """
+
+
     strdata = io.StringIO()
     tofile(strdata, _audio, *args, **kwargs)
     return strdata.getvalue()
+
