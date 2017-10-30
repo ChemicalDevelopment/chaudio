@@ -7,7 +7,7 @@ This is the online user documentation for ``chaudio``. You can see all the sourc
 
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 3
     :caption: Contents:
 
     installing

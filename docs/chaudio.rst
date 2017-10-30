@@ -12,13 +12,7 @@ Subpackages
     chaudio.source
     chaudio.tests
     chaudio.util
-
-Submodules
-----------
-
-.. toctree::
-
-   chaudio.waves
+    chaudio.waves
 
 Module contents
 ---------------

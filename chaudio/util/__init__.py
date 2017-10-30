@@ -1,8 +1,8 @@
-"""
-.. currentmodule:: chaudio.util
-
-Utility Functions (:mod:`chaudio.util`)
+"""Utility Functions (:mod:`chaudio.util`)
 =======================================
+
+
+.. currentmodule:: chaudio.util
 
 This module provides useful utilities and classes to be used elsewhere. Note that most of these functions are aliased directly to the main :mod:`chaudio` module. Ones that are not aliased are often lower level and may not support all input types.
 

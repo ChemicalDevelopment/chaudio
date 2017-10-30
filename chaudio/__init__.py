@@ -1,8 +1,7 @@
-"""
-.. currentmodule:: chaudio
-
-Programmatic Music Synthesis (:mod:`chaudio`)
+"""Programmatic Music Synthesis (:mod:`chaudio`)
 ====================================================
+
+.. currentmodule:: chaudio
 
 Submodules:
 
@@ -10,8 +9,9 @@ Submodules:
 .. autosummary::
     :toctree: submodules
 
-    waves
     util
+    io
+    waves
 
 
 """

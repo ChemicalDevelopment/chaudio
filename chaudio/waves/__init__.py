@@ -1,8 +1,8 @@
-"""
-.. currentmodule:: chaudio.waves
-
-Waveform Generation Functions (:mod:`chaudio.waves`)
+"""Waveform Generation Functions (:mod:`chaudio.waves`)
 ====================================================
+
+
+.. currentmodule:: chaudio.waves
 
 Source for calculating waveform values (like :meth:`chaudio.waves.sin`, :meth:`chaudio.waves.saw`, etc)
 

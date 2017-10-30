@@ -1,10 +1,19 @@
+"""Input/Output functionality (:mod:`chaudio.io`)
+==============================================
+
+.. currentmodule:: chaudio.io
+
+Allows any data type to be stored to a file, returned as a string, read from a file or string, and other I/O issues.
+
+At this point, only WAVE integer formats are accepted, so 8 bit, 16 bit, 24 bit, and 32 bit WAVE formats all work. 
+
+WAVE 32f format does not work.
+
+In the future, support for ``.ogg`` and ``.mp3`` files will be hopefully added.
+
+
 """
 
-input output functions
-
-tostring and fromstring use StringIO and internall call tofile and fromfile
-
-"""
 
 # wave is part of the standard library, and supports WAVE integer formats
 import wave
@@ -15,6 +24,7 @@ import numpy as np
 
 
 # class for file specification, really only for internal usage
+# TODO: make this so that people can write their own
 class WaveFormat(object):
 
     def __init__(self, name, dtype, samplewidth, scale_factor):
@@ -23,7 +33,8 @@ class WaveFormat(object):
         self.samplewidth = samplewidth
         self.scale_factor = scale_factor
 
-# holds wave forma tspecifiers
+
+# holds wave format specifiers
 formats = {}
 
 formats["8i"] = WaveFormat("8i", np.int8, 1, 2.0 ** 7 - 1)
@@ -35,19 +46,30 @@ formats["32i"] = WaveFormat("32i", np.int32, 4, 2.0 ** 31 - 1)
 # float32 does not work does not work properly
 #formats["32f"] = WaveFormat("32f", np.float32, 4, 1.0)
 
-# string data read from
-# treat `strdata` as WAV file contents
-def fromstring(strdata, *args, **kwargs):
-    return fromfile(io.StringIO(strdata), *args, **kwargs)
 
-# return a string, which should be equivalent to file contents of a wave file
-def tostring(_audio, *args, **kwargs):
-    strdata = io.StringIO()
-    tofile(strdata, _audio, *args, **kwargs)
-    return strdata.getvalue()
-
-# returns a Source from a filename (or file pointer)
 def fromfile(filename):
+    """Returns file contents of a WAVE file
+
+    Returns the values (in correct channels) of a WAVE file (either by string name, or file pointer), returned with dtype of np.float32.
+
+    Note that they are not "normalized" as in using :meth:`chaudio.util.normalize`, but rather simply converted from the internal WAVE formats (which are integers), and divided by the maximum integer of that size. That way, all WAVE formats will return (within rounding) the same result when called with this function, so the original volume is conserved. This is the behaviour audacity has when reading files, which is to convert to 32f format internally.
+
+    This supports all standard WAVE integer formats, 8 bit, 16 bit, 24 bit, and 32 bit.
+
+    Note that WAVE 32f format is **NOT** supported yet
+
+    Parameters
+    ----------
+    filename : str, file
+        If a string, that file is opened, or if it is a file object already (which can be an io.StringIO object), that is used instead of opening another.
+
+    Returns
+    -------
+    :class:`chaudio.source.Source`
+        A chaudio Source class, with appropriate channels, samplerate, and a dtype of float32
+
+    """
+    
     w = wave.open(filename, 'r')
     
     channels, samplebytes, samplehz, samples, _, __ = w.getparams()
@@ -91,8 +113,28 @@ def fromfile(filename):
 
     return chaudio.source.Source(channel_data, hz=samplehz)
     
+def fromstring(strdata, *args, **kwargs):
+    """Returns file contents of a WAVE file
 
-# outputs _audio to filename (which can be file name, or a file pointer object)
+    Returns the values (in correct channels) of a WAVE file (either by string name, or file pointer), returned with dtype of np.float32.
+
+    Note that they are not "normalized" as in using :meth:`chaudio.util.normalize`, but rather simply converted from the internal WAVE formats (which are integers), and divided by the maximum integer of that size. That way, all WAVE formats will return (within rounding) the same result when called with this function, so the original volume is conserved. This is the behaviour audacity has when reading files, which is to convert to 32f format internally.
+
+    Parameters
+    ----------
+    filename : str, file
+        If a string, that file is opened, or if it is a file object already (which can be an io.StringIO object), that is used instead of opening another.
+
+    Returns
+    -------
+    :class:`chaudio.source.Source`
+        A chaudio Source class, with appropriate channels, samplerate, and a dtype of float32
+
+    """
+    return fromfile(io.StringIO(strdata), *args, **kwargs)
+
+
+
 def tofile(filename, _audio, waveformat="16i", normalize=True):
     audio = chaudio.source.Source(_audio, dtype=np.float32)
 
@@ -132,3 +174,11 @@ def tofile(filename, _audio, waveformat="16i", normalize=True):
     # a message so users know what's happening
     chaudio.msgprint("wrote to file " + filename)
     
+
+
+
+
+def tostring(_audio, *args, **kwargs):
+    strdata = io.StringIO()
+    tofile(strdata, _audio, *args, **kwargs)
+    return strdata.getvalue()
