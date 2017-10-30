@@ -215,7 +215,6 @@ class TimeSignature:
 
     Represents a `time signature <https://en.wikipedia.org/wiki/Time_signature>`_.
 
-
     """
 
     def __init__(self, beats, division, bpm=80):

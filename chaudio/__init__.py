@@ -10,6 +10,7 @@ Submodules:
     :toctree: submodules
 
     util
+    source
     io
     waves
 

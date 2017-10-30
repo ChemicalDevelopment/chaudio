@@ -16,7 +16,7 @@ class Fade(Basic):
         fadein = self.getarg("fadein", True)
         fadeout = self.getarg("fadeout", True)
         sec = self.getarg("sec", .05)
-        samples = min([len(data)/2, int(sec * data.hz)])
+        samples = min([int(len(data)/2), int(sec * data.hz)])
 
         if not fadein and not fadeout:
             return data

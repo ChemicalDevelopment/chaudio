@@ -38,7 +38,7 @@ y = ExtendedArranger(setitem="beat", timesignature=tsig)
 
 # plugins to use
 fade = Fade()
-echo = Echo(amp=.7, delay=tsig[0, .25], decay=.8, num=20)
+echo = Echo(amp=.7, idelay=1.0/8, delay=1.0/4, decay=.76, num=20)
 
 # butterworth plugin filters, these remove extremely low and high frequencies
 butter0 = Butter(cutoff=20000, btype="lowpass")
@@ -136,6 +136,6 @@ chaudio.tofile("composed.wav", y)
 #chaudio.tofile("composed_bassline.wav", bassline)
 
 # cool audio effects when it is low poly
-#chaudio.tofile("composed_8i.wav", y, "8i")
+chaudio.tofile("composed_8i.wav", y, "8i")
 
 
