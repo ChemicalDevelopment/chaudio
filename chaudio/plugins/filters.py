@@ -24,6 +24,7 @@ class Butter(Basic):
 
     def process(self, _data):
         data = Source(_data)
+
         # 5 is good default
         order = self.getarg("order", 5)
         cutoff = self.getarg("cutoff", 30)

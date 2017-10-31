@@ -39,12 +39,8 @@ formats = {}
 
 formats["8i"] = WaveFormat("8i", np.int8, 1, 2.0 ** 7 - 1)
 formats["16i"] = WaveFormat("16i", np.int16, 2, 2.0 ** 15 - 1)
-# special care must be given to 24 bit, which is explained in tofile and fromfile
 formats["24i"] = WaveFormat("24i", np.int32, 3, 2.0 ** 23 - 1)
 formats["32i"] = WaveFormat("32i", np.int32, 4, 2.0 ** 31 - 1)
-
-# float32 does not work does not work properly
-#formats["32f"] = WaveFormat("32f", np.float32, 4, 1.0)
 
 
 def fromfile(filename):

@@ -63,10 +63,7 @@ autodoc_member_order = 'bysource'
 
 autodoc_default_flags = [
     'members',
-    #'private-members',
     'special-members',
-    #'undoc-members',
-    #'show-inheritance'
 ]
 
 autoclass_content = "class"

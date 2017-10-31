@@ -164,6 +164,11 @@ class Source(object):
         tohz : int, float
             The sample rate, in samples per second
 
+        Returns
+        -------
+        :class:`chaudio.source.Source`
+            A copy of the object resampled to ``tohz`` samplerate
+
         """
         res = self.copy()
         res.resample(tohz)
@@ -180,6 +185,7 @@ class Source(object):
 
         If ``tochannels == 2`` (which means ``self.channels == 1``), the new data array is the old one, but duplicated.
 
+        To return an altered copy, and not change the object itself, use :meth:`chaudio.source.Source.rechanneled`
 
         Parameters
         ----------
@@ -190,10 +196,66 @@ class Source(object):
         """
         self.channels = tochannels
 
+    def rechanneled(self, tochannels):
+        """Return a copy of the object, with a specified number of channels
+
+        To not make a copy, and instead alter the object in place, use :meth:`chaudio.source.Source.rechannel`
+
+        Parameters
+        ----------
+        tochannels : { 1, 2 }
+            The number of channels the source should have. Must be ``1`` or ``2``.
+
+        Returns
+        -------
+        :class:`chaudio.source.Source`
+            A copy of the object with the number of channels changed to ``tochannels``
+
+        """
+
+        res = self.copy()
+        res.channels = tochannels
+        return res
+
     def redtype(self, todtype):
+        """Internally adjust what data format is used
+
+        This probably shouldn't be used by your application, as it does not rescale values. It's main use is in the :mod:`chaudio.util` module, for outputting as WAVE data.
+
+        Changes the internal data format
+
+        To make a copy, and not alter the current object, use :meth:`chaudio.source.Source.redtyped`
+
+        Parameters
+        ----------
+        todtype : { np.int8, np.int16, np.int32, np.float32, np.float16 }
+            Numpy data format
+            
+
+        """
         self.dtype = todtype
 
-    # getters and setters
+    def redtyped(self, todtype):
+        """Return a copy of the object, with a specified internal data format
+
+        To not make a copy, and instead alter the object in place, use :meth:`chaudio.source.Source.redtype`
+
+        Parameters
+        ----------
+        todtype : { np.int8, np.int16, np.int32, np.float32, np.float16 }
+            Numpy data format
+
+        Returns
+        -------
+        :class:`chaudio.source.Source`
+            A copy of the object with the data format changed to ``todtype``
+
+        """
+
+        res = self.copy()
+        res.dtype = todtype
+        return res
+
 
     # return list of channel data
     def get_data(self):
@@ -306,14 +368,33 @@ class Source(object):
     # source[N,X] acts like self.data[N][X] (N and X can be anything), which is a list of channels with X applied to each
     # source[N] is the same as source.data[N]
     def __getitem__(self, key):
+        """Return a portion of the data in a source
+
+        If ``key`` is an int or slice, return the channels indicated, in list format. So, use ``source[:]`` to return all channels as a list, or ``source[0]`` for the 0th channel (which is left on a stereo source).
+
+        If ``key`` is a tuple, return all the channels represented by ``source[key[0]]`` subscripted with ``key[1]``. So, ``source[0, :5]`` returns the first 5 samples of the ``0``th channel. ``source[:, :5]`` returns a list of the first 5 values for each channel.
+
+        Parameters
+        ----------
+        key : int, slice, tuple
+            If int or slice, return the channels represented by ``key``. If it's a tuple, return channel[key[1]] for each channel represented by ``key[0]``. See examples for more info.
+
+        Returns
+        -------
+        list of np.ndarray or np.ndarray
+            If the ``key`` specified a single channel, return just that channel's specified data as np.ndarray. If multiple channels are indicated, return a list of channel data.
+
+        """
+
         assert(type(key) in (int, tuple, slice))
         if type(key) is tuple:
             # it has multiple keys, so return them each channel with the key applied
             assert(len(key) == 2)
             k0 = self.data[key[0]]
             if type(k0) is not list:
-                k0 = [k0]
-            return [i[key[1]] for i in k0]
+                return k0[key[1]]
+            else:
+                return [i[key[1]] for i in k0]
         else:
             # they are asking for a specific channel, so just give them a channel
             return self.data[key]
@@ -325,6 +406,36 @@ class Source(object):
     # source.__setitem__(k, source.__getitem__(k)) means source does not functionally change
     # however, this also supports setting to another Source, although this is still expiremental
     def __setitem__(self, key, val):
+        """Set a portion of the data in a source
+
+        If ``key`` is an int or slice, set the channels indicated, in list format. So, use ``source[:] = y`` to set channels to a y, which must be a list of np.ndarray. 
+
+        If ``key`` is a tuple, set all the channels represented by ``source[key[0]]`` subscripted with ``key[1]``  to ``val``. So, ``source[0, :5] = y`` sets the first five values of the ``0``th channels to y. Note that ``y`` must be either a constant, or have the same shape as the values it is replacing. In our example, ``y`` would have to be a constant, or a np.ndarray with length 5
+
+        In general, the following should hold for any source ``x``, key ``key``, and value ``val``:
+
+        >>> x[key] = val
+        >>> print (x[key] == val)
+        True
+
+
+        Parameters
+        ----------
+        key : int, slice, tuple
+            If int or slice, set the channel data represented by ``key``. If it's a tuple, set channel[key[1]] for each channel represented by ``key[0]``. See examples for more info.
+
+        val : int, float, list, tuple, np.ndarray
+            The value to set the specified samples to. If it is a list, tuple, or np.ndarray, it must be the same shape as the values it is replacing. So, if saying ``x[0, :5] = y``, ``y`` must be int, float, or ``len(y)`` must be 5.
+
+
+        Returns
+        -------
+        list of np.ndarray or np.ndarray
+            If the ``key`` specified a single channel, return just that channel's specified data as np.ndarray. If multiple channels are indicated, return a list of channel data.
+
+        """
+
+
         assert(type(key) in (int, tuple, slice))
         if type(key) is tuple:
             if issubclass(type(val), Source):
@@ -337,9 +448,10 @@ class Source(object):
             else:
                 rs = self.data[key[0]]
                 if not isinstance(rs, list):
-                    rs = [rs]
-                for x in rs:
-                    x[key[1]] = val
+                    self.data[key[0]] = val
+                else:
+                    for x in rs:
+                        x[key[1]] = val
         else:
             # they are asking for a specific channel
             self.data[key] = val

@@ -136,6 +136,6 @@ chaudio.tofile("composed.wav", y)
 #chaudio.tofile("composed_bassline.wav", bassline)
 
 # cool audio effects when it is low poly
-chaudio.tofile("composed_8i.wav", y, "8i")
+#chaudio.tofile("composed_8i.wav", y, "8i")
 
 

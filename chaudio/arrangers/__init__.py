@@ -157,7 +157,6 @@ class Arranger(object):
     # force updates the source. No other classes should call this method; the arranger class figures out if it needs to update
     def update_source(self):
         hz, channels, dtype = int(self._source.hz), int(self._source.channels), self._source.dtype
-
         self._source = chaudio.Source(np.empty((0, )), hz=hz, dtype=dtype)
         self._source.channels = channels
         
