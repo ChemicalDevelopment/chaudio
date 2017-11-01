@@ -458,6 +458,22 @@ class Source(object):
 
     # this inserts something at an offset (in samples)
     def insert(self, offset, _val):
+        """Inserts samples at a given offset
+
+        To return a copy and not modify the original object, use :meth:`chaudio.source.Source.inserted`.
+
+        This clears ``data[offset:offset+len(_val)]``, and sets it to ``_val``
+
+        Parameters
+        ----------
+        offset : int
+            What sample to insert at
+
+        _val : numpy.ndarray, :class:`chaudio.source.Source`, :class:`chaudio.arrangers.Arranger`
+            This is converted to a source internally, see :meth:`chaudio.source.Source.__init__` for details on how this is done.
+
+        """
+
         val = Source(_val)
         val.hz = self._hz
         val.channels = self.channels
@@ -468,44 +484,158 @@ class Source(object):
         for i in range(0, self.channels):
             self._data[i][offset:offset+len(val)] = val._data[i]
 
+    def inserted(self, offset, _val):
+        """Returns a copy with inserted samples at a given offset
+
+        To not make a copy, and rather edit inplace, use :meth:`chaudio.source.Source.insert`.
+
+        Parameters
+        ----------
+        offset : int
+            What sample to insert at
+
+        _val : numpy.ndarray, :class:`chaudio.source.Source`, :class:`chaudio.arrangers.Arranger`
+            This is converted to a source internally, see :meth:`chaudio.source.Source.__init__` for details on how this is done.
+
+        Returns
+        -------
+        :class:`chaudio.source.Source`
+            A copy of the object with the ``data[offset:offset+len(_val)]`` assigned to ``_val``.
+
+        """
+
+        res = self.copy()
+        res.insert(offset, _val)
+        return res
+
     # plops in _v before the existing self._data
-    def prepend(self, _v):
-        v = Source(_v)
+    def prepend(self, _val):
+        """Prepend values to the data array
+
+        To return a copy and not modify the original object, use :meth:`chaudio.source.Source.prepended`.
+
+        This sets ``self.data`` to ``_val`` and ``data`` concatenated. This essentially can be used to add delays, silence, or prepend any other data
+
+        Parameters
+        ----------
+
+        _val : numpy.ndarray, :class:`chaudio.source.Source`, :class:`chaudio.arrangers.Arranger`
+            This is converted to a source internally, see :meth:`chaudio.source.Source.__init__` for details on how this is done.
+
+        """
+
+        v = Source(_val)
         v.hz = self.hz
         v.channels = self.channels
         for i in range(0, self.channels):
             self._data[i] = np.append(v.data[i], self._data[i])
 
+    # returns a copy
+    def prepended(self, _val):
+        """Returns a copy with prepended values to the data array
+
+        To modify the original object and not make a copy, use :meth:`chaudio.source.Source.prepend`.
+
+        This returns a copy of the object called on, with ``_val`` prepended before it.
+
+        Parameters
+        ----------
+
+        _val : numpy.ndarray, :class:`chaudio.source.Source`, :class:`chaudio.arrangers.Arranger`
+            This is converted to a source internally, see :meth:`chaudio.source.Source.__init__` for details on how this is done.
+
+        Returns
+        -------
+        :class:`chaudio.source.Source`
+            ``_val`` and the object called with concatenated
+
+        """
+        r = self.copy()
+        r.prepend(_val)
+        return r
+
     # appends _v after the existing self._data
-    def append(self, _v):
-        v = Source(_v)
+    def append(self, _val):
+        """Append values to the data array
+
+        To return a copy and not modify the original object, use :meth:`chaudio.source.Source.appended`.
+
+        This sets ``self.data`` to ``data`` and ``_val`` concatenated. This tacks on ``_val`` to the end.
+
+        Parameters
+        ----------
+
+        _val : numpy.ndarray, :class:`chaudio.source.Source`, :class:`chaudio.arrangers.Arranger`
+            This is converted to a source internally, see :meth:`chaudio.source.Source.__init__` for details on how this is done.
+
+        """
+
+        v = Source(_val)
         v.hz = self.hz
         v.channels = self.channels
         for i in range(0, self.channels):
             self._data[i] = np.append(self._data[i], v.data[i])
 
+    # returns a copy
+    def appended(self, _val):
+        """Returns a copy of the object with values appended to the data array
+
+        To not make a copy, and instead modify the object called with, use :meth:`chaudio.source.Source.append`.
+
+        Parameters
+        ----------
+
+        _val : numpy.ndarray, :class:`chaudio.source.Source`, :class:`chaudio.arrangers.Arranger`
+            This is converted to a source internally, see :meth:`chaudio.source.Source.__init__` for details on how this is done.
+
+        Returns
+        -------
+        :class:`chaudio.source.Source`
+            A copy of the current object, but with ``_val`` appended.
+
+        """
+        
+        r = self.copy()
+        r.append(_val)
+        return r
+
     def ensure(self, length=None):
+        """Makes sure that the source is a certain length, which will append 0's to the end if needed
+
+        To return a copy and not modify the original object, use :meth:`chaudio.source.Source.ensured`.
+
+        Parameters
+        ----------
+
+        _val : numpy.ndarray, :class:`chaudio.source.Source`, :class:`chaudio.arrangers.Arranger`
+            This is converted to a source internally, see :meth:`chaudio.source.Source.__init__` for details on how this is done.
+
+        """
+
         if length is not None and length > len(self._data[0]):
             needed_len = length - len(self._data[0])
             pad = np.zeros((needed_len, ), dtype=self.dtype)
             for i in range(0, self.channels):
                 self._data[i] = np.append(self._data[i], pad)
 
-
-    # returns a copy
-    def prepended(self, _v):
-        r = self.copy()
-        r.prepend(_v)
-        return r
-
-    # returns a copy
-    def appended(self, _v):
-        r = self.copy()
-        r.append(_v)
-        return r
-
     # returns a copy
     def ensured(self, length=None):
+        """Makes a copy that is guaranteed to be a certain length, which will append 0's to the end if needed
+
+        To modify the original object, use :meth:`chaudio.source.Source.ensure`.
+
+        Parameters
+        ----------
+
+        _val : numpy.ndarray, :class:`chaudio.source.Source`, :class:`chaudio.arrangers.Arranger`
+            This is converted to a source internally, see :meth:`chaudio.source.Source.__init__` for details on how this is done.
+
+        Returns
+        -------
+        :class:`chaudio.source.Source`
+            A copy of the object being called, but it is guaranteed to be of a certain length
+
+        """
         r = self.copy()
         r.ensure(length=length)
         return r
@@ -594,6 +724,15 @@ class Source(object):
 
 class Mono(Source):
     def __init__(self, data, hz=None):
+        """A source with only 1 channel
+
+        Returns
+        -------
+        :class:`chaudio.source.Mono`
+            The same as using :meth:`chaudio.source.Source.__init__`, but then ensures there is only 1 channel
+
+        """
+
         super().__init__(data, hz)
         self.channels = 1
 
@@ -603,6 +742,15 @@ class Mono(Source):
 
 class Stereo(Source):
     def __init__(self, data, hz=None):
+        """A source with only 2 channels
+
+        Returns
+        -------
+        :class:`chaudio.source.Stereo`
+            The same as using :meth:`chaudio.source.Source.__init__`, but then ensures there is only 2 channel
+
+        """
+
         super().__init__(data, hz)
         self.channels = 2
 
