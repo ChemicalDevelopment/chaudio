@@ -6,7 +6,7 @@
 
 All these are essentially abstractions above a data array of samples.
 
-Has support for variable number of channels, any frequency, and dtype
+Has support for variable number of channels, any samplerate, and data type
 
 Operators are overriden, so that you can apply them to a constant, numpy array, or other audio source
 
