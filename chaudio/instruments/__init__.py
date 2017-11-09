@@ -101,7 +101,7 @@ class Oscillator(Instrument):
         """Initializes an oscillator, given waveform and a host of other parameters
 
         
-        Keep in all parameters can be overriden in individual calls to the :meth:`chaudio.instruments.oscillator.note` function. So, to override the ``phase_shift`` for a single note, run like ``osc.note("A4", phase_shift=2) to temporarily override the initialized parameter.
+        Keep in all parameters can be overriden in individual calls to the :meth:`chaudio.instruments.Oscillator.note` function. So, to override the ``phase_shift`` for a single note, run like ``osc.note("A4", phase_shift=2) to temporarily override the initialized parameter.
 
         To change the values you initialized with, set like so: ``osc["phase_shift"] = 2``
 
