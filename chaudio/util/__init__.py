@@ -159,6 +159,52 @@ def note(name):
     
 
 
+def ensure_lr_dict(val):
+    """Ensures the input is returned as a dictionary object with right and left specifiers
+
+    If ``val`` is a dictionary, look for ``left`` or ``right`` keys. If both exist, return those as a new dictionary. If only one exists, assume that value stands for both sides.
+
+    If ``val`` is a tuple/list, and it has 1 value, assume that is for both left and right. If it has length of 2, assum ``val[0]`` is the left value and ``val[1]`` is right.
+
+    Else, assume the single ``val`` is the value for left and right, i.e. there is no difference between the two sides.
+
+    If ``val`` does not fit these rules, a ``ValueException`` is raised.
+
+    Parameters
+    ----------
+    val : any
+        value to be ensured as a left/right dictionary
+
+    Returns
+    -------
+    dict
+        Value with keys 'left' and 'right', determined by the input value
+
+
+    """
+    if isinstance(val, dict):
+        if "left" in val and "right" in val:
+            return { "left": val["left"], "right": val["right"] }
+        elif "left" in val:
+            return { "left": val["left"], "right": val["left"] }
+        elif "right" in val:
+            return { "left": val["right"], "right": val["right"] }
+        else:
+            raise ValueError("Input dictionary has neither 'left' or 'right' value")
+    elif isinstance(val, tuple) or isinstance(val, list):
+        if len(val) == 0:
+            raise ValueError("Input tuple/list has no items (length is 0")
+        elif len(val) == 1:
+            return { "left": val[0], "right": val[0] }
+        elif len(val) == 2:
+            return { "left": val[0], "right": val[1] }
+        else:
+            raise ValueError("Length of input is too large (> 2)")
+    else:
+        return { "right": val, "left": val }
+
+
+
 # returns smallest normalization factor, such that -1.0<=v/normalize_factor(v)<=1.0, for all values in the array
 def normalize_factor(v):
     """The factor needed to scale ``v`` in order to normalize to [-1.0, +1.0] range

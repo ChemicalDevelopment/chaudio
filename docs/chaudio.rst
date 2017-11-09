@@ -9,6 +9,7 @@ Subpackages
     chaudio.arrangers
     chaudio.io
     chaudio.plugins
+    chaudio.instruments
     chaudio.source
     chaudio.tests
     chaudio.util

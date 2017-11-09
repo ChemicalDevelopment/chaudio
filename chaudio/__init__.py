@@ -13,6 +13,9 @@ Submodules:
     source
     io
     waves
+    instruments
+    arrangers
+
 
 
 """
@@ -37,6 +40,7 @@ import chaudio.source
 import chaudio.arrangers
 import chaudio.plugins
 import chaudio.waves
+import chaudio.instruments
 import chaudio.util
 import chaudio.io
 
