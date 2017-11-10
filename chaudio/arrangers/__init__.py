@@ -16,9 +16,33 @@ import chaudio
 import numpy as np
 
 
-# simple datastructure for storing inputs so that they can be recreated, and detected if they change
 class InsertCall(object):
+    """
+
+    Data structure to have handle each time something is inserted, so that the action can be reconstructed later
+
+    """
+
     def __init__(self, key, val, kwargs):
+        """Initializes an insert call
+
+        Parameters
+        ----------
+        key : obj
+            Key used to input
+
+        val : obj
+            Value given to set at ``key``
+
+        kwargs : dict
+            Which arguments were given with the insertion
+
+        Returns
+        -------
+        :class:`chaudio.arrangers.InsertCall`
+            The result representing an insert call
+
+        """
         self.key = key
         self.val = val
         self.kwargs = kwargs
@@ -35,20 +59,35 @@ class InsertCall(object):
 
 
 
-"""
-
-this class is for combining sounds together, given a point, and applying plugins:
-
-Only has support for inputting at a number of samples, serves as a base class.abs
-
-ExtendedArranger is probably the best for most users
-
-"""
 
 class Arranger(object):
+    """
+
+    this class is for combining sounds together, given a point, and applying plugins:
+
+    Only has support for inputting at a number of samples, serves as a base class.
+
+    :class:`chaudio.arrangers.ExtendedArranger` is probably the best for most users
+
+    """
+
 
     # constructor, accepts nothing by default
     def __init__(self, **kwargs):
+        """Initializes an arranger
+
+        Parameters
+        ----------
+
+        kwargs : (keyword arguments)
+            Which arguments were given and should be used in operations. Essentially config options.
+
+        Returns
+        -------
+        :class:`chaudio.arrangers.InsertCall`
+            The result representing an insert call
+
+        """
 
         # store these for later
         self.kwargs = kwargs

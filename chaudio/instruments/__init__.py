@@ -11,6 +11,8 @@ import chaudio
 
 from chaudio.util import ensure_lr_dict
 
+
+
 class Instrument(object):
     """
 
@@ -34,25 +36,123 @@ class Instrument(object):
         """
         self.kwargs = kwargs
 
-    def merged_kwargs(self, specific_kwargs):
-        """Returns the merged kwargs (i.e. the input replaces values not specified as defaults.)
+    def raw_note(self, **kwargs):
+        """Returns raw note source (i.e. without plugins added)
+
+        MOST PEOPLE SHOULD NOT NEED THIS FUNCTION!
+
+        Please use the :meth:`chaudio.instruments.Instrument.note` function for external needs, as this method is used internally there, and then plugins are applied.
+
+        This method is not implemented in this base (i.e. :class:`chaudio.instruments.Instrument`) class, but should be implemented by any actual instrument.
+
+        Parameters
+        ----------
+        **kwargs : (key word arguments)
+            The generic instrument arguments
+
+        Returns
+        -------
+        :class:`chaudio.source.Stereo`
+            A source representing the raw note of the instrument (without plugins).
+
+        """
+        pass
+
+    def note(self, **kwargs):
+        """Returns raw note source with all plugins applied
+
+        The `freq` argument is specified as the actual note being played. So, to play an ``A``, use ``instrument.note(freq="A", ...)``
+
+        Parameters
+        ----------
+        **kwargs : (key word arguments)
+            The generic instrument arguments (use `freq` for the note value)
+
+        Returns
+        -------
+        :class:`chaudio.source.Stereo`
+            A source representing instrument playing a note
+
+        """
+        raw_note_kwargs = self.merged_kwargs(kwargs, ["plugins"])
+        res = self.raw_note(**raw_note_kwargs)
+        for plugin in self.kwargs.get("plugins", {}):
+            res = plugin.process(res)
+
+        return res
+
+    def add_plugin(self, plugin):
+        """Adds a processing plugin
+
+        Parameters
+        ----------
+        plugin : :class:`chaudio.plugins.Basic`
+            Plugin object that extends Basic
+
+
+        """
+        if "plugins" in self.kwargs:
+            self.kwargs["plugins"] += [plugin]
+        else:
+            self.kwargs["plugins"] = [plugin]
+
+
+    def remove_plugin(self, plugin):
+        """Removes a plugin, by the plugin object, or the index
+
+        Parameters
+        ----------
+        plugin : :class:`chaudio.plugins.Basic` or int
+            Plugin object that extends Basic, or index
+
+        """
+
+        if "plugins" in self.kwargs:
+            if isinstance(plugin, int):
+                self.kwargs["plugins"].pop(plugin)
+            else:
+                self.kwargs["plugins"].remove(plugin)
+        else:
+            raise KeyError("There are no plugins added yet!")
+
+
+
+    def copy(self):
+        """Returns a copy of the object
+
+        Returns
+        -------
+        :class:`chaudio.instruments.Instrument` (or whatever class the object is)
+            A copy of the object. Keeps the same type, however
+
+        """
+        return type(self)(self.kwargs.copy())
+
+    def merged_kwargs(self, specific_kwargs, exclude=[]):
+        """Returns the merged kwargs (i.e. the input replaces values not specified as defaults.) and then remove ``exclude`` vals.
 
         Parameters
         ----------
         specific_kwargs : dict
             What was passed to the specific function (like :meth:`chaudio.instruments.Instrument.note`) that needs to override the initialiezd kwargs.
 
+        exclude : list, tuple
+            Which arguments to remove (i.e. exclude) from the result
+
         Returns
         -------
         dict
-            The merged results, with anything from ``specific_kwargs`` taking precedence over the defaults
+            The merged results, with anything from ``specific_kwargs`` taking precedence over the defaults, then remove all from ``exclude``
 
         """
 
-        ret = self.kwargs
+        ret = dict(self.kwargs)
         for key in specific_kwargs:
             ret[key] = specific_kwargs[key]
-        
+
+        for key in exclude:
+            ret.pop(key, None)
+
         return ret
 
     def __getitem__(self, key):
@@ -86,8 +186,6 @@ class Instrument(object):
         """
         return self.kwargs.__setitem__(key, val)
 
-    def note(self, **kwargs):
-        pass
 
 
 class Oscillator(Instrument):
@@ -145,13 +243,12 @@ class Oscillator(Instrument):
         kwargs["pan"] = pan
         super(Oscillator, self).__init__(**kwargs)
 
-
     def __str__(self):
         return "Oscillator (%s)" % ", ".join([k + "=" + (self.kwargs[k].__name__ if hasattr(self.kwargs[k], "__name__") else str(self.kwargs[k])) for k in self.kwargs])
 
     __repr__ = __str__
 
-    def note(self, **kwargs):
+    def raw_note(self, **kwargs):
         """Returns the result of the instrument performing a note for specified parameters
 
         Basic usage is ``osc.note(freq="A4", amp=.5, ...)`` and that overrides the ``amp`` value set on creation.
@@ -227,16 +324,28 @@ class MultiOscillator(Instrument):
 
     """
 
-    def __init__(self, osc=None, **kwargs):
-        """Creates a MultiOscillator instrument
+    def __init__(self, osc, **kwargs):
+        """Returns an instrument multiplexor with oscillators
 
+
+        Parameters
+        ----------
+        osc : list, tuple, None
+            The group of oscillators. These are all the oscillators that are played each time you ask for a note. You can change oscillators after construction using the :meth:`chaudio.instruments.MultiOscillator.add_osc` and :meth:`chaudio.instruments.MultiOscillator.remove_osc` methods.
+
+        kwargs : (key word args)
+            These are all values that can override the default values (which all are documented in the :meth:`chaudio.instruments.Oscillator.__init__` method). 
+
+        Returns
+        -------
+
+        :class:`chaudio.instruments.MultiOscillator`
+            The multioscillator representing the oscillators playing the note
 
         """
         if osc is None:
-            osc = [None] * 3
-            osc[0] = Oscillator(waveform=chaudio.waves.square, samplerate=None, phase_shift=.4, freq_shift=-1200, tweak=.4, pan=-.6, amp=.55)
-            osc[1] = Oscillator(waveform=chaudio.waves.triangle, samplerate=None, phase_shift=(.7, .5), freq_shift=(-508, -496), tweak=(.2, .45), pan=.4, amp=.3)
-            osc[2] = Oscillator(waveform=chaudio.waves.saw, samplerate=None, phase_shift=(.1, .15), freq_shift=(1918, 1890), tweak=(.28, .35), pan=-.2, amp=.15)
+            osc = []
+
         self.osc = osc
         self.kwargs = kwargs
 
@@ -255,11 +364,8 @@ class MultiOscillator(Instrument):
         else:
             self.osc.remove(osc)
 
-    def note(self, **kwargs):
-        # fill current kwargs with defaults if they don't exist
-        for key in self.kwargs:
-            if key not in kwargs:
-                kwargs[key] = self.kwargs[key]
+    def raw_note(self, **kwargs):
+        kwargs = self.merged_kwargs(kwargs)
 
         res = None
         for i in self.osc:
@@ -278,7 +384,9 @@ class MultiOscillator(Instrument):
         self.osc.__setitem__(key)
 
 
+import chaudio.instruments._presets
 
+presets = _presets.presets
 
 
 

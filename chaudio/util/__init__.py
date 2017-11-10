@@ -263,7 +263,7 @@ class TimeSignature:
 
     """
 
-    def __init__(self, beats, division, bpm=80):
+    def __init__(self, beats, division, bpm=60):
         """TimeSignature creation routine
 
         Return a time signature representing measures each with ``beats`` beats (or pulses).
