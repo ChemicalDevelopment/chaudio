@@ -43,6 +43,33 @@ formats["24i"] = WaveFormat("24i", np.int32, 3, 2.0 ** 23 - 1)
 formats["32i"] = WaveFormat("32i", np.int32, 4, 2.0 ** 31 - 1)
 
 
+def play(_audio, waveformat="16i"):
+    import simpleaudio as sa
+    import atexit
+
+    audio = chaudio.source.Source(_audio, dtype=np.float32)
+
+
+    # detect wave format
+    if type(waveformat) is str:
+        waveformat = formats[waveformat]
+
+    raw_data = audio[:]
+
+    for i in range(0, len(raw_data)):
+        raw_data[i] = (waveformat.scale_factor * chaudio.util.normalize(raw_data[i])).astype(waveformat.dtype)
+
+    # this is packed
+    play_buf = np.zeros(len(raw_data) * len(raw_data[0]), dtype=waveformat.dtype)
+
+    for i in range(0, len(raw_data)):
+        play_buf[i::len(raw_data)] = raw_data[i]
+
+    play_obj = sa.play_buffer(play_buf, len(raw_data), waveformat.samplewidth, audio.hz)
+
+    atexit.register(play_obj.wait_done)
+
+
 def fromfile(filename):
     """Returns file contents of a WAVE file (either name or file pointer) as a :class:`chaudio.source.Source`
 
@@ -122,7 +149,6 @@ def fromstring(strdata, *args, **kwargs):
 
     """
     return fromfile(io.StringIO(strdata), *args, **kwargs)
-
 
 
 def tofile(filename, _audio, waveformat="16i", normalize=True):

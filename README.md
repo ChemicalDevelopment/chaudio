@@ -34,7 +34,7 @@ It reads in a file, adds static, then outputs the result to output.
 Run like `python3 examples/addnoise.py simple.wav -o simple_static.wav` (assuming you've ran `examples/simple.py`).
 
 
-#### examples/compose.py
+#### examples/arrange.py
 
 This example shows how to create an entire song, efficiently and rubustly.
 
@@ -42,7 +42,7 @@ This example shows how to create an entire song, efficiently and rubustly.
 
 ## Installation
 
-You need either version of python (2 and 3 work, 3 is recommended), as well as numpy, scipy, and matplotlib.
+You need either version of python (2 and 3 work, 3 is recommended), as well as numpy, scipy, and simpleaudio.
 
 You can easily install with pip: 
 

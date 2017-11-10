@@ -8,9 +8,9 @@ Support for instrument plugins that can play notes, MIDI data, and other formats
 """
 
 import chaudio
+import numpy as np
 
 from chaudio.util import ensure_lr_dict
-
 
 
 class Instrument(object):
@@ -187,6 +187,62 @@ class Instrument(object):
         return self.kwargs.__setitem__(key, val)
 
 
+class ADSREnvelope(object):
+    """
+    
+    All values in seconds
+
+    """
+    def __init__(self, A=0, D=0, S=1, R=0):
+        self.kwargs = {}
+
+        self.kwargs["A"] = A
+        self.kwargs["D"] = D
+        self.kwargs["S"] = S
+        self.kwargs["R"] = R
+
+    def merged_kwargs(self, kwargs):
+        res = self.kwargs.copy()
+        for key in kwargs:
+            res[key] = kwargs[key]
+        return res
+
+    def calc_val(self, t, **kwargs):
+        # t is time sample array
+        kwargs = self.merged_kwargs(kwargs)
+        res = t.copy()
+
+        if kwargs["A"] != 0:
+            res[t <= kwargs["A"]] /= kwargs["A"]
+        else:
+            res[t <= kwargs["A"]] = 1
+
+        delay_select = (t > kwargs["A"]) & (t <= kwargs["A"] + kwargs["D"])
+        delay_t = t[delay_select]
+
+        if len(delay_t) > 1:
+            delay_min = delay_t[0]
+            delay_max = delay_t[-1]
+            res[delay_select] = 1.0 - (1.0 - kwargs["S"]) * (t[delay_select] - delay_min) / (delay_max - delay_min)
+        else:
+            res[delay_select] = 1.0
+
+
+        sus_select = (t > kwargs["A"] + kwargs["D"]) & (t <= t[-1] - kwargs["R"])
+
+        res[sus_select] = kwargs["S"]
+
+        rel_select = (t > t[-1] - kwargs["R"])
+
+        if len(t[rel_select]) > 1:
+            rel_min = t[rel_select][0]
+            rel_max = t[rel_select][-1]
+
+            res[rel_select] = kwargs["S"] * (1 - (t[rel_select] - rel_min) / (rel_max - rel_min))
+
+        return res
+
+
 
 class Oscillator(Instrument):
     """
@@ -195,7 +251,7 @@ class Oscillator(Instrument):
 
     """
 
-    def __init__(self, waveform=chaudio.waves.sin, amp=1.0, samplerate=None, phase_shift=0, freq_shift=0, tweak=None, pan=0, **kwargs):
+    def __init__(self, waveform=chaudio.waves.sin, amp=1.0, amp_env=None, samplerate=None, phase_shift=0, freq_shift=0, tweak=None, pan=0, **kwargs):
         """Initializes an oscillator, given waveform and a host of other parameters
 
         
@@ -234,8 +290,12 @@ class Oscillator(Instrument):
             The instrument object
 
         """
+        if amp_env is None:
+            amp_env = ADSREnvelope()
+
         kwargs["waveform"] = waveform
         kwargs["amp"] = amp
+        kwargs["amp_env"] = amp_env
         kwargs["samplerate"] = samplerate
         kwargs["phase_shift"] = phase_shift
         kwargs["freq_shift"] = freq_shift
@@ -276,6 +336,7 @@ class Oscillator(Instrument):
 
         freq = kwargs["freq"]
         amp = kwargs["amp"]
+        amp_env = kwargs["amp_env"]
         waveform = kwargs["waveform"]
         samplerate = kwargs["samplerate"]
         t = kwargs["t"]
@@ -310,7 +371,7 @@ class Oscillator(Instrument):
         data = {}
 
         for key in "left", "right":
-            data[key] = amp * waveform(t + phase_shift[key] / freq[key], freq[key], tweak=tweak[key])
+            data[key] = amp_env.calc_val(t) * amp * waveform(t + phase_shift[key] / freq[key], freq[key], tweak=tweak[key])
 
         res = chaudio.source.Stereo(((1 - adj_pan) * data["left"], adj_pan * data["right"]), samplerate)
 
@@ -384,9 +445,17 @@ class MultiOscillator(Instrument):
         self.osc.__setitem__(key)
 
 
-import chaudio.instruments._presets
+presets = { }
 
-presets = _presets.presets
+presets["sin"] = Oscillator(waveform=chaudio.waves.sin)
+presets["square"] = Oscillator(waveform=chaudio.waves.square)
+presets["saw"] = Oscillator(waveform=chaudio.waves.saw)
+presets["triangle"] = Oscillator(waveform=chaudio.waves.triangle)
+
+presets["bass"] = MultiOscillator([])
+
+presets["bass"].add_osc(Oscillator(waveform=chaudio.waves.square, samplerate=None, phase_shift=.4, freq_shift=(-1210, -1199), tweak=.4, pan=-.6, amp=.55, amp_env=ADSREnvelope(A=.25, D=0, S=1, R=.1)))
+presets["bass"].add_osc(Oscillator(waveform=chaudio.waves.triangle, samplerate=None, phase_shift=.7, freq_shift=(-513, -496), tweak=(.2, .28), pan=.4, amp=.25, amp_env=ADSREnvelope(A=.4, D=.6, S=.75, R=.2)))
 
 
 
