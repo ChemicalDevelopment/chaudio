@@ -219,7 +219,6 @@ def triangle(t, hz, tweak=None):
         -2.72108844e-04,  -1.81405896e-04,  -9.07029478e-05])
 
 
-
     See Also
     --------
     :meth:`chaudio.util.times` : returns sample times, which can be passed to this function as sample times

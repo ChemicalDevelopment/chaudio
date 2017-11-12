@@ -1,8 +1,25 @@
+"""Plugin Audio Processing (:mod:`chaudio.plugins`)
+==============================================
+
+.. currentmodule:: chaudio.plugins
+
+These are plugins that take in an input, perform some action on it to alter the sound, and then return the result as a :class:`chaudio.source.Source`.
+
+Some common ones:
+
+.. autosummary::
+    :toctree: submodules
+
+    echo
+    fade
+    filters
+    noise
+    resolution
+    volume
+
+
 """
 
-audio plugins, for creating effects and managing pipelines
-
-"""
 
 # does nothing to audio, only stores it and retreives it, with hash to tell if it changed
 class Basic(object):

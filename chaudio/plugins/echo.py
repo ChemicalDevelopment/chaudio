@@ -1,26 +1,46 @@
 """
 
-takes input, adds white noise
+Adds in the echo effect, with each successive echo being decayed.
 
 """
 
 from chaudio.source import Source
 from chaudio.plugins import Basic
 
-# echos the input (not the same as reverb)
 class Echo(Basic):
+    """
+
+    Adds in the echo effect, with each successive echo being decayed.
+
+    """
+
     def process(self, _data):
+        """Returns the result, but echoed
+
+        So, the the amplitude of the ``n`` th echo is ``kwargs["amp"] * (n) ** kwargs["decay"]``
+
+        Kwargs
+        ------
+
+        :"idelay": The initial delay, in seconds, before the echos begin at all
+        :"delay": The delay for each successive echo
+        :"num": How many echos to factor in
+        :"amp": The base amplitude of all echos
+        :"decay": The multiplication of the signal each successive echo
+
+        """
+
         data = Source(_data)
         res = data.copy()
 
-        # delay, in seconds
-        delay = self.getarg("delay", 0)
         # initial delay, in seconds
         idelay = self.getarg("idelay", 0)
+        # delay, in seconds
+        delay = self.getarg("delay", .15)
         # how many repeats should we calculate
-        num = self.getarg("num", 16)
+        num = self.getarg("num", 8)
         # amplitude of all echos
-        amp = self.getarg("amp", .52)
+        amp = self.getarg("amp", .9)
         # decay of each iteration (multiplicative)
         decay = self.getarg("decay", .56)
 

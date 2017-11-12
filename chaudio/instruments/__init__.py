@@ -190,10 +190,34 @@ class Instrument(object):
 class ADSREnvelope(object):
     """
     
-    All values in seconds
+    This is an `ADSR envelope <https://en.wikipedia.org/wiki/Synthesizer#Attack_Decay_Sustain_Release_.28ADSR.29_envelope>`_.
+
+    For a good explanation, see `ADSR Envelope one wikiaudio <http://en.wikiaudio.org/ADSR_envelope>`_.
+
+    .. image:: /resources/ADSR.png
+
 
     """
     def __init__(self, A=0, D=0, S=1, R=0):
+        """Initializes the envelope with common parameters.
+
+        Parameters
+        ----------
+
+        A : float
+            'attack' value, in seconds. Essentially the envelope is ramping up until ``A`` seconds
+        
+        D : float
+            'decay' value, in seconds. The envelope will scale gently to ``S`` between time ``A`` and ``A + D`` seconds.
+
+        S : float
+            'sustain' value, as an amplitude between 0.0 and 1.0. This is the value that the envelope holds between ``A + D`` and ``t - R`` seconds (where ``t`` is the length of the segment that is being enveloped).
+
+        R : float
+            'release', value in seconds. This is the time (from the end of the time values being enveloped) that the ADSR envelope starts fading out.
+
+
+        """
         self.kwargs = {}
 
         self.kwargs["A"] = A
@@ -208,7 +232,38 @@ class ADSREnvelope(object):
         return res
 
     def calc_val(self, t, **kwargs):
-        # t is time sample array
+        """Returns the envelope values for a time sample array.
+
+        This returns the values (which are all 0.0 to 1.0) of the envelope, applied over the times given in ``t``. The result has the same length as t, so that you can apply operations to ``t`` and others. See the examples below. This is used in :class:`chaudio.instruments.Oscillator`.
+
+        Parameters
+        ----------
+
+        t : np.ndarray
+            The value of time samples. These are generated (typically) using the :meth:`chaudio.util.times` method.
+
+        kwargs : (key word args)
+            These can override ``A``, ``D``, ``S``, or ``R`` for a specific call to this function without forever replacing the defaults.
+
+        Returns
+        -------
+        
+        np.ndarray
+            A result with the same length as ``t`` (so you can do operations with them).
+
+
+        Examples
+        --------
+
+        >>> t = chaudio.util.times(4)
+        >>> wave = chaudio.waves.triangle(t, hz=220)
+        >>> env = chaudio.instruments.ADSREnvelope(A=.4, D=1.0, S=.4, R=.8)
+        >>> y = wave * env.calc_val(t)
+        >>> # y now contains the wave with the envelope value
+        >>> chaudio.play(y)
+
+        """
+
         kwargs = self.merged_kwargs(kwargs)
         res = t.copy()
 

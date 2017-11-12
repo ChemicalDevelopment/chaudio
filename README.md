@@ -36,7 +36,7 @@ Run like `python3 examples/addnoise.py simple.wav -o simple_static.wav` (assumin
 
 #### examples/arrange.py
 
-This example shows how to create an entire song, efficiently and rubustly.
+This example shows how to create an entire song, efficiently and rubustly. The result is `arranged.wav`
 
 
 

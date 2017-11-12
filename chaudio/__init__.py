@@ -9,14 +9,13 @@ Submodules:
 .. autosummary::
     :toctree: submodules
 
-    util
-    source
-    io
-    waves
-    instruments
     arrangers
-
-
+    instruments
+    io
+    plugins
+    source
+    util
+    waves
 
 """
 
@@ -54,6 +53,8 @@ note = chaudio.util.note
 
 tofile = chaudio.io.tofile
 fromfile = chaudio.io.fromfile
+
+play = chaudio.io.play
 
 # classes
 

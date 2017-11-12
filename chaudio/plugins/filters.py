@@ -1,6 +1,6 @@
 """
 
-filters may reduce noise, re-equalize frequencies, remove frequencies, etc
+filters to remove frequency ranges, pass zones, bands, etc
 
 """
 
@@ -12,10 +12,20 @@ from chaudio.util import times
 from chaudio.plugins import Basic
 from chaudio.waves import noise
 
-# based on the Butterworth filter (https://en.wikipedia.org/wiki/Butterworth_filter), the actuation function based on frequency is nearly linear (in respect to gain in dB), so there not many artifacts around the pass zone
+
 class Butter(Basic):
+    """
+    
+    Butterworth filter (https://en.wikipedia.org/wiki/Butterworth_filter), the actuation function based on frequency is nearly linear (in respect to gain in dB), so there not many artifacts around the pass zone
+
+    """
+
     # returns the coeficients for a normal filter operation
     def coef(self, cutoff, hz, order, btype):
+        """Internal function for getting the filter coefficients
+
+        """
+
         nyq = hz / 2.0
         normal_cutoff = cutoff / nyq
         # return butterworth design coefs
@@ -23,12 +33,23 @@ class Butter(Basic):
         return b, a
 
     def process(self, _data):
+        """Return the result, with some frequencies filtered out
+
+        Kwargs
+        ------
+
+        :"order": Butterworth filter order, which should probably stay at ``5`` (the default)
+        :"cutoff": Frequency, in ``hz``, of the cutoff. If ``btype`` is ``highpass``, then anything above ``cutoff`` remains in the resulting signal (i.e. the high values pass). If ``btype=="lowpass"``, all frequencies lower than ``cutoff`` remain in the signal.
+        :"btype": What filter type? Possible values are "highpass" and "lowpass".
+
+        """
+
         data = Source(_data)
 
         # 5 is good default
         order = self.getarg("order", 5)
         cutoff = self.getarg("cutoff", 30)
-        hz = self.getarg("hz", chaudio.defaults["hz"])
+        hz = data.hz
         btype = self.getarg("btype", "highpass")
 
         b, a = self.coef(cutoff, hz, order, btype)

@@ -1,6 +1,8 @@
-"""
+"""Arrangers (:mod:`chaudio.arrangers`)
+==============================================
 
-essentially multiplexers and plugin chains
+.. currentmodule:: chaudio.arrangers
+
 
 Can record inputs, and detect if they change, and regenerate their source automatically
 
@@ -119,6 +121,23 @@ class Arranger(object):
 
     # returns kwarg passed, or default if no kwarg is given
     def getarg(self, key, default=None):
+        """Returns the value stored in key word arguments, or a default if it is not contained
+
+        Parameters
+        ----------
+
+        key : obj
+            Key, normally a str
+
+        default : obj
+            What to return if the key word arguments does not contain the specified key
+
+        Returns
+        -------
+        obj
+            The value stored in key word arguments, or a default if it is not contained
+
+        """
         if key in self.kwargs:
             return self.kwargs[key]
         else:
@@ -127,6 +146,21 @@ class Arranger(object):
     # sets the kwargs value
     # if replace is False, check if key is already set. If so, do not replace value
     def setarg(self, key, val, replace=True):
+        """Sets the argument, specifying whether or not to override
+
+        Parameters
+        ----------
+
+        key : obj
+            Key, normally a str
+
+        val : obj
+            value to store
+
+        replace : bool
+            If True, replace if ``key`` is already contained. If not, only replace if the key is not in the key word arguments
+
+        """
         if replace or (key not in self.kwargs):
             self.kwargs[key] = val
 
@@ -143,11 +177,53 @@ class Arranger(object):
 
     # returns the index of the plugin added
     def add_insert_plugin(self, plugin):
+        """Adds a plugin that is applied when a clip or value is inserted
+
+        See :mod:`chaudio.plugins` for some plugins, and a description.
+
+        Essentially, ``plugin`` is added to the chain (at the end), which processes the output of the previous plugin (or it is the first, in which case it acts on the data inserted).
+
+        Parameters
+        ----------
+
+        plugin : :class:`chaudio.plugins.Basic`
+            What plugin to add
+
+
+        Returns
+        -------
+
+        int
+            index of the plugin, such that ``plugin == arranger.insert_plugins[RETURN]`` where ``RETURN`` is the return value of this function.
+
+        """
         self.insert_plugins += [plugin]
         return len(self.insert_plugins) - 1
 
     # returns the index of the plugin added
     def add_final_plugin(self, plugin):
+        """Adds a plugin that is applied to the entire arranger's computed things.
+
+        See :mod:`chaudio.plugins` for some plugins, and a description.
+
+        Essentially, ``plugin`` is added to the chain (at the end), which processes the output of the previous plugin (or it is the first, in which case it acts on the data inserted).
+
+        First, each insert has all the insert plugins applied (see method :meth:`chaudio.arrangers.Arranger.add_insert_plugin`), and all of the inserted sources are combined and inserted at their respective places, and all the final plugins are applied.
+
+        Parameters
+        ----------
+
+        plugin : :class:`chaudio.plugins.Basic`
+            What plugin to add
+
+
+        Returns
+        -------
+
+        int
+            index of the plugin, such that ``plugin == arranger.final_plugins[RETURN]`` where ``RETURN`` is the return value of this function.
+
+        """
         self.final_plugins += [plugin]
         return len(self.final_plugins) - 1
 
@@ -167,6 +243,18 @@ class Arranger(object):
 
     # applies the insert call to the object's internal source
     def apply_insert(self, insert_call):
+        """Internal method to apply an insert call object
+
+        Essentially change self._source by applying an insert. This method exists so that inserted values can be changed, and internal references can be updated if any change.
+
+        Parameters
+        ----------
+
+        insert_call : :class:`chaudio.arrangers.InsertCall`
+            What data structure to insert
+
+        """
+
         key = insert_call.key
         val = chaudio.source.Source(insert_call.val)
         val.hz = self._source.hz
@@ -175,12 +263,16 @@ class Arranger(object):
 
         for plugin in self.insert_plugins:
             val = plugin.process(val)
-        
+
+        b4 = len(self._source[0])
+
         if len(self._source[0]) < key + len(val):
             self._source.ensure(length=key+len(val))
 
         for i in range(0, self._source.channels):
-            self._source[i,key:key+len(val)] += val[i]
+            self._source[i][key:key+len(val)] += val[i]
+
+
 
     # ensures source is updated, returns true if it required an update
     def ensure_updated_source(self):
@@ -212,16 +304,26 @@ class Arranger(object):
 
     # adds 'data' to self.source, offset by sample
     def insert_sample(self, sample, _data, **kwargs):
+        """Inserts data at an offset, in sample measurements
+
+        Add a insert value which adds ``_data`` at the offset ``sample``. Note that this doesn't take into account the time in seconds, for that use :class:`chaudio.arrangers.ExtendedArranger`, specifically the method :meth:`chaudio.arrangers.ExtendedArranger.insert_time`
+
+        Parameters
+        ----------
+
+        insert_call : :class:`chaudio.arrangers.InsertCall`
+            What data structure to insert
+
+        """
         # make sure it is a positive int
         if not isinstance(sample, int):
-            raise TypeError("Arranger insert_sample, sample must be int")
+            raise TypeError("Arranger insert_sample, sample must be int (was given sample=%s)" % sample)
         if sample < 0:
-            raise KeyError("Arranger insert_sample, sample must be > 0")
+            raise KeyError("Arranger insert_sample, sample must be > 0 (was given sample=%s)" % sample)
 
         # create a new insert call so that this can be recalculated, even though it is not instantly computed.
         # this is because it works like a JIT compiler
         self.insert_calls += [InsertCall(sample, _data, kwargs)]
-
 
     # the default setitem call (arrange[key] = _val)
     def __setitem__(self, key, _val):
@@ -237,15 +339,44 @@ class Arranger(object):
         self.ensure_updated_source()
         return self.source.__len__()
 
-"""
-
-lke arranger, but supports beats and time inserts
-
-"""
 
 class ExtendedArranger(Arranger):
+    """
+
+    Extends the basic arranger (:class:`chaudio.arrangers.Arranger`)
+
+    """
 
     def __init__(self, **kwargs):
+        """Initializes the ExtendedArranger. 
+
+        Add a insert value which adds ``_data`` at the offset ``sample``. Note that this doesn't take into account the time in seconds, for that use :class:`chaudio.arrangers.ExtendedArranger`, specifically the method :meth:`chaudio.arrangers.ExtendedArranger.insert_time`
+
+        Keyword arguments:
+
+        :``hz``: 
+            int, the samplerate
+
+        :``timesignature``:
+            :class:`chaudio.util.TimeSignature`, which is the time signature used. The default is 4/4 in 60 bpm (so that 1 beat == 1 second)
+
+        :``setitem``:
+            either "sample", "time", or "beat". This controls how the :meth:`chaudio.arrangers.ExtendedArranger.__setitem__` functionality works (when you call it like `extarranger[X] = Y`. 
+            
+            if ``setitem == "sample"``, the ``X`` is treated as the sample (and the behaviour is the same as :class:`chaudio.arrangers.Arranger`). This is the default.
+
+            if ``setitem == "time"``, the ``X`` is treated as the time in seconds
+
+            if ``setitem == "beat"``, the ``X`` is treated as a number of beats, and is used in accordance with ``timesignature`` (see above). Or, it can be a tuple of ``measures, beats``. For example, ``extarranger[M, B] = Y`` can be used.
+
+        Parameters
+        ----------
+
+        kwargs : (key word arguments)
+            Extended arranger adds ``hz``, ``timesignature``, and ``setitem`` as usage values. See the description above for an explanation of these.
+
+        """
+
         # this weird super call is required for python2+python3 compatability
         super(ExtendedArranger, self).__init__(**kwargs)
 
@@ -262,10 +393,35 @@ class ExtendedArranger(Arranger):
 
     # inserts _data at a time (in seconds) t
     def insert_time(self, t, _data):
+        """Inserts audio data at a specified time (in seconds)
+
+        Parameters
+        ----------
+
+        t : int, float
+            Time, in seconds, to apply the audio at
+
+        _data : list, tuple, np.ndarray, :class:`chaudio.source.Source`, :class:`chaudio.arrangers.Arranger`
+            This is the data (which can be any generic format, the internal classes will figure out how to make it work out).
+
+        """
         self.insert_sample(int(self.getarg("hz") * t), _data)
 
     # inserts at a beat, which the internal timesignature should handle and return a time for
     def insert_beat(self, beat, _data):
+        """Inserts audio data at a specified time (in beats, or in (measures, beats) format)
+
+        Parameters
+        ----------
+
+        beat : int, float, tuple
+            The number of beats, or a tuple containing ``measures, beats``. This is converted to time, which :meth:`chaudio.arrangers.ExtendedArranger.insert_time` is called internally.
+
+        _data : list, tuple, np.ndarray, :class:`chaudio.source.Source`, :class:`chaudio.arrangers.Arranger`
+            This is the data (which can be any generic format, the internal classes will figure out how to make it work out).
+
+        """
+
         self.insert_time(self.getarg("timesignature")[beat], _data)
 
     # finds out which method we are using, then applies it
@@ -274,3 +430,5 @@ class ExtendedArranger(Arranger):
             self.setitem_funcs[self.getarg("setitem")](key, _data)
         else:
             raise Exception("setitem type '%s' is not a valid setitem function type" % (self.getarg("setitem")))
+
+

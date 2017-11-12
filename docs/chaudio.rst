@@ -7,9 +7,9 @@ Subpackages
 .. toctree::
 
     chaudio.arrangers
+    chaudio.instruments
     chaudio.io
     chaudio.plugins
-    chaudio.instruments
     chaudio.source
     chaudio.tests
     chaudio.util

@@ -44,6 +44,21 @@ formats["32i"] = WaveFormat("32i", np.int32, 4, 2.0 ** 31 - 1)
 
 
 def play(_audio, waveformat="16i"):
+    """Plays the audio through the system speaker
+
+    Requires simpleaudio ``pip3 install simpleaudio`` to work (which is a dependency of chaudio)
+
+    Parameters
+    ----------
+
+    _audio : :class:`chaudio.source.Source`, :class:`chaudio.arrangers.Arranger`, np.ndarray
+        This is converted to :class:`chaudio.source.Source`, and then output.
+
+    waveformat : str, :class:`chaudio.io.WaveFormat`
+        This describes how to convert the data. Should probably be an integer format, and the default is good enough for anyone. See :class:`chaudio.io.WaveFormat` for how to use it.
+
+    """
+
     import simpleaudio as sa
     import atexit
 
@@ -212,8 +227,6 @@ def tofile(filename, _audio, waveformat="16i", normalize=True):
     chaudio.msgprint("wrote to file " + filename)
     
 
-
-
 def tostring(_audio, *args, **kwargs):
     """Returns the WAVE file contents. Essentially returns what :meth:`chaudio.io.tofile` would have written to a file.
 
@@ -235,7 +248,6 @@ def tostring(_audio, *args, **kwargs):
         An str representing the WAVE file contents.
 
     """
-
 
     strdata = io.StringIO()
     tofile(strdata, _audio, *args, **kwargs)

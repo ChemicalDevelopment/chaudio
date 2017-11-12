@@ -50,10 +50,12 @@ butter1 = Butter(cutoff=30, btype="highpass")
 # the baseline should echo, and needs to be louder
 bassline.add_insert_plugin(fade)
 bassline.add_insert_plugin(echo)
-bassline.add_final_plugin(Volume(amp=3))
+bassline.add_final_plugin(Volume(amp=8))
 
 melody.add_insert_plugin(fade)
-melody.add_final_plugin(Volume(amp=.6))
+melody.add_final_plugin(Volume(amp=1.8))
+
+beat.add_final_plugin(Volume(amp=.8))
 
 
 # this will affect all things in the arranger (including drum samples), so the cutoffs have to not remove crucial information (20000 and 30 are pretty good values)
@@ -92,6 +94,7 @@ for b in range(0, tsig.beats):
     else:
         beat[0, b + .5] = hat["closed"]
 
+
 # bassline is all in sin waves
 wave = chaudio.waves.sin
 
@@ -129,8 +132,12 @@ for i in range(0, measures):
     y[i, 0] = melody
 
 
+chaudio.tofile("arranged.wav", y)
+chaudio.play(y)
+
+
 # export to file
-chaudio.tofile("composed.wav", y)
+#chaudio.tofile("composed.wav", wave(t(.5), note("G3")))
 
 # you can just output the bassline, for example
 #chaudio.tofile("composed_bassline.wav", bassline)
