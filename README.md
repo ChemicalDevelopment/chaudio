@@ -4,8 +4,38 @@ chaudio is a python module to programmatically create music.
 
 chaudio contains audio processing utilities for converting audio, and applying effects to already generated songs
 
+Licensed under the GNU GPLv3
+
+
+[Installation Guide](http://chaudio.readthedocs.io/en/latest/installing.html)
+
+[Getting Started Guide](http://chaudio.readthedocs.io/en/latest/getting_started.html)
+
+## Installing
+
+[Installation Guide](http://chaudio.readthedocs.io/en/latest/installing.html)
+
+It is available on pypi, so run ``pip3 install chaudio``.
+
+Python3 is the officially supported language, but an effort is made to be compatable with python2, so you can try ``pip install chaudio``. Please open an [issue](https://github.com/chemicaldevelopment/chaudio/issues) if either of these fails.
+
+
+### From Source
+
+Clone this repo, and then run ``python3 setup.py install`` (or ``python setup.py install``)
+
+
+
+## Documentation
+
+For documentation, usage examples, visit our [readthedocs page](http://chaudio.readthedocs.io).
+
+
 
 ## Usage
+
+[Getting Started Guide](http://chaudio.readthedocs.io/en/latest/getting_started.html)
+
 
 ### Examples
 
