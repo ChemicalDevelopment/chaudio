@@ -21,7 +21,7 @@ with open(path.join(here, 'README.md')) as f:
 
 setup(
     name='chaudio',
-    version='0.0.4',
+    version='0.0.6',
 
     description='Programmatic music synthesis',
     long_description=long_description,
@@ -39,7 +39,7 @@ setup(
 
     keywords='audio music synthesis processing',
 
-    packages = ["chaudio"],
+    packages = ["chaudio", "chaudio.arrangers", "chaudio.instruments", "chaudio.io", "chaudio.plugins", "chaudio.source", "chaudio.tests", "chaudio.util", "chaudio.waves"],
 
     test_suite="chaudio.tests",
 

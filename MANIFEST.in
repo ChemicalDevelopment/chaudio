@@ -1,3 +1,4 @@
 include README.md
-include chudio/samples/*
+recursive-include chaudio *.py
+include chaudio/samples/*
 include examples/*
