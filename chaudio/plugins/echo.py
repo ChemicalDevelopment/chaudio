@@ -49,7 +49,10 @@ class Echo(Basic):
 
         # add 'num' echos, each time the strength multiplied by 'decay'
         for i in range(1, num+1):
-            res.insert(int(data.hz * (idelay + delay * i)), cur_echo)
+            idx = int(data.hz * (idelay + delay * i))
+            for j in range(0, res.channels):
+                res.ensure(idx + len(cur_echo[j]))
+                res[j][idx:idx + len(cur_echo[j])] += cur_echo[j]
             # decay signal
             cur_echo *= decay
 

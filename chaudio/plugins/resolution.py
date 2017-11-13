@@ -48,7 +48,7 @@ class Resolution(Basic):
 
         # normalize it so step is on a 0.0 to 1.0 step
         if norm:
-            data = data / norm
+            data = data / factor
 
         # this is done so we can handle division by zero
         with np.errstate(divide='ignore', invalid='ignore'):
@@ -63,7 +63,7 @@ class Resolution(Basic):
 
         # unnormalize it so it has roughly the same amplitudes
         if norm:
-            data = data * norm
+            data = data * factor
 
         return data
 
