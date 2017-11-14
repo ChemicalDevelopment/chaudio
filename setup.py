@@ -21,7 +21,7 @@ with open(path.join(here, 'README.md')) as f:
 
 setup(
     name='chaudio',
-    version='0.0.7',
+    version='0.0.8',
 
     description='Programmatic music synthesis',
     long_description=long_description,
@@ -43,10 +43,9 @@ setup(
 
     test_suite="chaudio.tests",
 
-    install_requires=['numpy', 'scipy'],
+    install_requires=['numpy', 'scipy', 'simpleaudio'],
     extras_require={
         'test': ['coverage'],
-        'output': ["simpleaudio"],
     },
 
     data_files=[('chaudio/samples', glob.glob('chaudio/samples/*')), ('examples', glob.glob("examples/*"))],
