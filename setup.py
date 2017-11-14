@@ -21,7 +21,7 @@ with open(path.join(here, 'README.md')) as f:
 
 setup(
     name='chaudio',
-    version='0.0.6',
+    version='0.0.7',
 
     description='Programmatic music synthesis',
     long_description=long_description,
