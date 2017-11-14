@@ -354,7 +354,7 @@ class Oscillator(Instrument):
 
     """
 
-    def __init__(self, waveform=chaudio.waves.sin, amp=1.0, amp_env=ADSREnvelope(), amp_lfo=LFO(amp=0.0), samplerate=None, phase_shift=0, freq_shift=0, freq_lfo=LFO(amp=0.0), tweak=None, pan=0, **kwargs):
+    def __init__(self, waveform=chaudio.waves.sin, amp=1.0, amp_env=ADSREnvelope(), amp_lfo=LFO(amp=0.0), samplerate=None, phase_shift=0, freq_shift=0, freq_lfo=LFO(amp=0.0), tweak=None, tweak_lfo=LFO(amp=0.0), pan=0, **kwargs):
         """Initializes an oscillator, given waveform and a host of other parameters
 
         
@@ -405,6 +405,7 @@ class Oscillator(Instrument):
         kwargs["freq_shift"] = freq_shift
         kwargs["freq_lfo"] = freq_lfo
         kwargs["tweak"] = tweak
+        kwargs["tweak_lfo"] = tweak_lfo
         kwargs["pan"] = pan
         super(Oscillator, self).__init__(**kwargs)
 
@@ -462,26 +463,22 @@ class Oscillator(Instrument):
                 elif pan > 1.0:
                     pan = 1
 
-        freq = base_freq + kwargs["freq_lfo"].calc_val(t)
-
-        tweak = ensure_lr_dict(kwargs["tweak"])
-        freq_shift = ensure_lr_dict(kwargs["freq_shift"])
-        phase_shift = ensure_lr_dict(kwargs["phase_shift"])
-
-        freq = ensure_lr_dict((
-            chaudio.util.transpose(freq, freq_shift["left"]),
-            chaudio.util.transpose(freq, freq_shift["right"])
-        ))
+        freq = chaudio.util.transpose(base_freq + kwargs["freq_lfo"].calc_val(t), kwargs["freq_shift"])
+        amp = amp_env.calc_val(t) * (amp + amp_lfo.calc_val(t))
+        if kwargs["tweak"] is None:
+            tweak = kwargs["tweak"]
+        else:
+            tweak = kwargs["tweak"] + kwargs["tweak_lfo"].calc_val(t)
+        
+        freq_shift = kwargs["freq_shift"]
+        phase_shift = kwargs["phase_shift"]
 
         # scale it to (0, 1.0), 0 meaning all the way L, and 1.0 meaning all the way R
         adj_pan = (pan + 1) / 2.0
 
-        data = {}
+        data = amp * waveform(t + phase_shift / freq, freq, tweak=tweak)
 
-        for key in "left", "right":
-            data[key] = amp_env.calc_val(t) * (amp + amp_lfo.calc_val(t)) * waveform(t + phase_shift[key] / freq[key], freq[key], tweak=tweak[key])
-
-        res = chaudio.source.Stereo(((1 - adj_pan) * data["left"], adj_pan * data["right"]), samplerate)
+        res = chaudio.source.Stereo(((1 - adj_pan) * data, adj_pan * data), samplerate)
 
         return res
 
@@ -574,21 +571,21 @@ presets["triangle"] = Oscillator(waveform=chaudio.waves.triangle)
 
 presets["bass"] = MultiOscillator([])
 
-presets["bass"].add_osc(Oscillator(waveform=chaudio.waves.square, samplerate=None, phase_shift=.4, freq_shift=(-1210, -1199), tweak=.4, pan=-.4, amp=.45, amp_env=ADSREnvelope(A=.25, D=0, S=1, R=.1)))
-presets["bass"].add_osc(Oscillator(waveform=chaudio.waves.triangle, samplerate=None, phase_shift=.7, freq_shift=(-513, -496), tweak=(.2, .28), pan=.2, amp=.25, amp_env=ADSREnvelope(A=.4, D=.6, S=.75, R=.2)))
+presets["bass"].add_osc(Oscillator(waveform=chaudio.waves.square, samplerate=None, phase_shift=.4, freq_shift=-1199, tweak=.4, pan=-.4, amp=.45, amp_env=ADSREnvelope(A=.25, D=0, S=1, R=.1)))
+presets["bass"].add_osc(Oscillator(waveform=chaudio.waves.triangle, samplerate=None, phase_shift=.7, freq_shift=-508, tweak=.24, pan=.2, amp=.25, amp_env=ADSREnvelope(A=.4, D=.6, S=.75, R=.2)))
 
 
 presets["lead"] = MultiOscillator([])
 
-presets["lead"].add_osc(Oscillator(waveform=chaudio.waves.saw, samplerate=None, phase_shift=.4, freq_shift=(-4, 3), tweak=None, pan=.3, amp=1.0, amp_env=ADSREnvelope(A=.25, D=.75, S=.7, R=2.5), amp_lfo=LFO(waveform=chaudio.waves.sin, amp=.05, hz=2)))
+presets["lead"].add_osc(Oscillator(waveform=chaudio.waves.saw, samplerate=None, phase_shift=.4, freq_shift=-2, tweak=None, pan=.3, amp=1.0, amp_env=ADSREnvelope(A=.25, D=.75, S=.7, R=2.5), amp_lfo=LFO(waveform=chaudio.waves.sin, amp=.05, hz=2)))
 presets["lead"].osc[0].add_plugin(chaudio.plugins.Resolution(step=.2))
 
-presets["lead"].add_osc(Oscillator(waveform=chaudio.waves.square, samplerate=None, phase_shift=.4, freq_shift=(712, 696), tweak=None, pan=-.2, amp=.6, amp_env=ADSREnvelope(A=.25, D=.25, S=.5, R=2.0)))
+presets["lead"].add_osc(Oscillator(waveform=chaudio.waves.square, samplerate=None, phase_shift=.4, freq_shift=696, tweak=None, pan=-.2, amp=.6, amp_env=ADSREnvelope(A=.25, D=.25, S=.5, R=2.0)))
 
 
 presets["ripping_lead"] = MultiOscillator([])
-presets["ripping_lead"].add_osc(Oscillator(waveform=chaudio.waves.saw, samplerate=None, phase_shift=.4, freq_shift=(-3, 5), tweak=None, pan=-.2, amp=.8, amp_env=ADSREnvelope(A=.25, D=.5, S=1, R=2.0)))
-presets["ripping_lead"].add_osc(Oscillator(waveform=chaudio.waves.saw, samplerate=None, phase_shift=(.5, .8), freq_shift=(35, 57), tweak=.4, pan=-.2, amp=.4, amp_env=ADSREnvelope(A=.25, D=.5, S=1, R=2.0)))
+presets["ripping_lead"].add_osc(Oscillator(waveform=chaudio.waves.saw, samplerate=None, phase_shift=.4, freq_shift=-3, tweak=None, pan=-.2, amp=.8, amp_env=ADSREnvelope(A=.25, D=.5, S=1, R=2.0)))
+presets["ripping_lead"].add_osc(Oscillator(waveform=chaudio.waves.saw, samplerate=None, phase_shift=.5, freq_shift=40, tweak=.4, pan=-.2, amp=.4, amp_env=ADSREnvelope(A=.25, D=.5, S=1, R=2.0)))
 
 #presets["lead"].add_plugin(chaudio.plugins.Butter(cutoff=5000, btype="lowpass"))
 

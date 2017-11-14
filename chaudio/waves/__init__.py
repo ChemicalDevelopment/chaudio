@@ -31,6 +31,32 @@ import chaudio
 
 import numpy as np
 
+
+def phase_correction(t, hz):
+    """Computes the phase correction factor for time values and frequencies
+
+    See `this post <https://stackoverflow.com/questions/3089832/sine-wave-glissando-from-one-pitch-to-another-in-numpy>`_ for more info
+
+    Parameters
+    ----------
+    t : np.ndarray
+        The time sample values
+    
+    hz : float, int, np.ndarray
+        Frequency of wave. If the type of ``hz`` is np.ndarray, it must have the same shape as ``t``, and in that case each corresponding value of ``t``'s wave is given a phase correction value
+
+    Returns
+    -------
+    np.ndarray
+        Returns the phase correction vector needed to correctly produce sound with a changing frequency
+
+    """
+    if not isinstance(hz, np.ndarray):
+        return 0
+    else:
+        return np.add.accumulate(t*np.concatenate((np.zeros(1), (hz[:-1]-hz[1:]))))
+
+
 def sin(t, hz, tweak=None):
     """Computes the `sin wave <https://en.wikipedia.org/wiki/Sine_wave>`_ of sample times (``t``), and frequencies (``hz``)
 
@@ -70,7 +96,7 @@ def sin(t, hz, tweak=None):
 
     """
 
-    base_sin = np.sin((2 * np.pi * hz) * (t))
+    base_sin = np.sin((2 * np.pi) * (hz * t + phase_correction(t, hz)))
     if tweak is None:
         return base_sin
     else:
@@ -118,7 +144,8 @@ def saw(t, hz, tweak=None):
     :meth:`chaudio.util.times` : returns sample times, which can be passed to this function as sample times
 
     """
-    base_saw = 2 * ((t * hz + .5) % 1.0) - 1
+    # have to scale the phase correction
+    base_saw = 2 * ((t * hz + phase_correction(t, hz) + .5) % 1.0) - 1
     if tweak is None:
         return base_saw
     else:
@@ -173,9 +200,9 @@ def square(t, hz, tweak=None):
     """
 
     if tweak is None:
-        return 2 * (((t * hz) % 1.0) > .5) - 1
+        return 2 * (((t * hz + phase_correction(t, hz)) % 1.0) > .5) - 1
     else:
-        return 2 * (((t * hz) % 1.0) > tweak) - 1
+        return 2 * (((t * hz + phase_correction(t, hz)) % 1.0) > tweak) - 1
 
 def triangle(t, hz, tweak=None):
     """Computes the `triangle wave <https://en.wikipedia.org/wiki/Triangle_wave>`_ of sample times (``t``), and frequencies (``hz``)
@@ -225,7 +252,7 @@ def triangle(t, hz, tweak=None):
 
     """
 
-    base_triangle = np.abs(4 * ((t * hz + .75) % 1.0) - 2) - 1
+    base_triangle = np.abs(4 * ((t * hz + .75 + phase_correction(t, hz)) % 1.0) - 2) - 1
     if tweak is None:
         return base_triangle
     else:
