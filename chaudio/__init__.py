@@ -42,7 +42,7 @@ import chaudio.waves
 import chaudio.instruments
 import chaudio.util
 import chaudio.io
-
+import chaudio.track
 
 # add useful aliases so frequently used functions/types are easy to access
 
@@ -61,6 +61,9 @@ play = chaudio.io.play
 Source = chaudio.source.Source
 
 TimeSignature = chaudio.util.TimeSignature
+
+Track = chaudio.track.Track
+Note = chaudio.track.Note
 
 
 # normal print, which uses stderr so that we can pipe data between processes
