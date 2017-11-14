@@ -43,7 +43,7 @@ setup(
 
     test_suite="chaudio.tests",
 
-    install_requires=['numpy', 'scipy', 'simpleaudio', 'git+https://github.com/ChemicalDevelopment/python-midi.git'],
+    install_requires=['numpy', 'scipy', 'simpleaudio'],
 
     extras_require={
         'test': ['coverage'],
