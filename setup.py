@@ -43,7 +43,7 @@ setup(
 
     test_suite="chaudio.tests",
 
-    install_requires=['numpy', 'scipy', 'simpleaudio'],
+    install_requires=['numpy', 'scipy'],
     extras_require={
         'test': ['coverage'],
     },

@@ -59,7 +59,14 @@ def play(_audio, waveformat="16i"):
 
     """
 
-    import simpleaudio as sa
+    try:
+        import simpleaudio as sa
+    except:
+        print ("Error, you tried to call 'chaudio.io.play' and the required package 'simpleaudio' is not installed. ")
+        print ("To enable this feature, install it now with:")
+        print ("    'pip3 install simpleaudio'")
+        exit()
+
     import atexit
 
     audio = chaudio.source.Source(_audio, dtype=np.float32)
