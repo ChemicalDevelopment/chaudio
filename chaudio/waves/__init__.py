@@ -149,7 +149,7 @@ def saw(t, hz, tweak=None):
     if tweak is None:
         return base_saw
     else:
-        return base_saw * (1 + tweak * sin(t, hz, tweak))
+        return base_saw - (chaudio.util.lambda_mask(base_saw, lambda x: x > tweak))
 
 def square(t, hz, tweak=None):
     """Computes the `square wave <https://en.wikipedia.org/wiki/Square_wave>`_ of sample times (``t``), and frequencies (``hz``)

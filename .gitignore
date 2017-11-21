@@ -23,6 +23,9 @@ test.py
 *.mp3
 *.ogg
 *.flac
+*.mp4
+*.gif
+
 
 !chaudio/samples/*.wav
 

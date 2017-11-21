@@ -78,6 +78,75 @@ def times(t, hz=None):
 
     return np.arange(0, _t, 1.0 / hz)
 
+def concatenate(data):
+    res = chaudio.Source(data[0])
+    for i in data[1:]:
+        res.append(i)
+    return res
+
+def lambda_apply(xdomain, ydomain, conversion_lambda):
+    # conversion_lambda should be like lambda x, y: y * f(x)
+    return conversion_lambda(np.array(xdomain), np.array(ydomain))
+
+def lambda_mask(data, qualifier):
+    bool_mask = qualifier(data)
+    return bool_mask * data
+
+class FFTChunker(object):
+
+    def __init__(self, audio, chunk_s=.1):
+        self.audio = chaudio.Source(audio)
+        self.chunk_s = chunk_s
+        self.chunk_samples = int(chunk_s * self.audio.hz)
+    
+    def inverse_fft_chunk(self, data):
+        res = chaudio.Source([np.fft.irfft(channel, self.chunk_samples) for channel in data])
+        return res
+
+    def domain(self):
+        return self.audio.hz * np.fft.rfftfreq(self.chunk_samples)
+
+    def fft_chunks(self):
+        res = []
+        for i in range(0, len(self)):
+            res.append(self.get_fft_chunk(i))
+        return res
+    
+    def ifft_chunks(self, chunks):
+        res = []
+        for i in range(0, len(chunks)):
+            res.append(self.inverse_fft_chunk(chunks[i]))
+        return res
+
+    def get_fft_chunk(self, i):
+        # returns list of channel tuples with (freq domain, values)
+        raw_chunk = self.get_data_chunk(i)
+        fft_res = []
+        for channel in raw_chunk:
+            fft_res.append(np.fft.rfft(channel, n=self.chunk_samples))
+        return fft_res
+
+    def get_data_chunk(self, i):
+        if self.chunk_samples * (i + 1) > len(self.audio[0]):
+            chunk = self.audio[:][self.chunk_samples * i:]
+            chunk = np.append(chunk, np.zeros(self.chunk_samples - len(chunk)))
+        else:
+            chunk = []
+            for j in self.audio[:]:
+                chunk.append(j[self.chunk_samples * i:self.chunk_samples * (i + 1)])
+        return chunk
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self.get_fft_chunk(key)
+        elif isinstance(key, slice):
+            return [self[i] for i in range(key)]
+        else:
+            raise KeyError("Unknown type for FFTChunker")
+
+    def __len__(self):
+        return (self.audio.samples // self.chunk_samples) + (self.audio.samples % self.chunk_samples != 0)
+
 
 def transpose(hz, cents):
     """Transposes a frequency value by a number of `cents <https://en.wikipedia.org/wiki/Cent_(music)>`_
