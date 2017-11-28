@@ -457,6 +457,31 @@ class Source(object):
             self.data[key] = val
 
     # this inserts something at an offset (in samples)
+    def clear(self):
+        """Empties all data
+
+        To return a copy and not modify the original object, use :meth:`chaudio.source.Source.cleared`.
+
+        This empties all data out
+
+        """
+
+        self.data = [np.zeros(0, dtype=self.dtype) for x in range(0, self.channels)]
+
+    # this inserts something at an offset (in samples)
+    def cleared(self):
+        """Empties all data, and returns a copy
+
+        To modify in place, :meth:`chaudio.source.Source.clear`.
+
+        This empties all data out
+
+        """
+        res = self.copy()
+        res.clear()
+        return res
+    
+    # this inserts something at an offset (in samples)
     def insert(self, offset, _val):
         """Inserts samples at a given offset
 

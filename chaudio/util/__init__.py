@@ -84,68 +84,145 @@ def concatenate(data):
         res.append(i)
     return res
 
-def lambda_apply(xdomain, ydomain, conversion_lambda):
+def apply_(data, conversion_lambda):
     # conversion_lambda should be like lambda x, y: y * f(x)
-    return conversion_lambda(np.array(xdomain), np.array(ydomain))
+    # domain should be (x, y)
+    return conversion_lambda(np.array(data[0]), np.array(data[1]))
+
+    
+def sumdup(key, val):
+    """ sums duplicates
+
+
+    """
+    dups, ind, counts = np.unique(key, return_index=True, return_counts=True)
+    dup_val = val[ind]
+    for dup in dups[counts>1]: 
+        dup_val[np.where(dups==dup)] = np.sum(val[np.where(key==dup)])
+    return dups, dup_val
+
+def map_domain(domain, chunk, conversion_lambda):
+    # this is used for transforming pitch
+    # conversion_lambda is like lambda x: x * 2
+    # and that will map each element of (domain[0], domain[1]) to (2 * domain[0], domain[1])
+    # data is (frequency domain, amplitude)
+
+    # in hz, bin size
+    index_diff = domain[-1]-domain[-2]
+
+    # the transformed domain
+    domain_map = conversion_lambda(np.array(domain))
+
+    selector_valid = (domain >= 0) & (domain_map >= 0) & (domain_map <= np.max(domain))
+
+    res = []
+
+    round_offset = 0
+
+    output_bins = domain_map[selector_valid]
+    output_selector = (output_bins / index_diff + round_offset).astype(np.int)
+
+    for amps in chunk:
+        c_out = np.zeros(len(amps), dtype=np.complex)
+
+        combo_bins = sumdup(output_selector, np.array(amps)[selector_valid])
+
+        #c_out[domain <= 0] = 0
+        c_out[combo_bins[0]] = combo_bins[1]
+        #c_out[output_selector] = sumdup(c_out[output_selector], np.array(amps)[selector_valid])[1]
+
+        res.append(c_out)
+
+    return res
 
 def lambda_mask(data, qualifier):
     bool_mask = qualifier(data)
     return bool_mask * data
 
-class FFTChunker(object):
 
-    def __init__(self, audio, chunk_s=.1):
+def fft_phase(fft_domain):
+    return np.arctan2(fft_domain)
+
+class Chunker(object):
+    def __init__(self, audio, n=8192, hop=None):
         self.audio = chaudio.Source(audio)
-        self.chunk_s = chunk_s
-        self.chunk_samples = int(chunk_s * self.audio.hz)
-    
-    def inverse_fft_chunk(self, data):
-        res = chaudio.Source([np.fft.irfft(channel, self.chunk_samples) for channel in data])
+        self.n = n
+        if hop is None:
+            self.hop = n
+        else:
+            self.hop = hop
+
+    def chunk_time(self):
+        return float(self.hop) / self.audio.hz
+
+    def chunk_time_offset(self, n):
+        return float(n * self.n) / self.audio.hz
+
+    def recombo(self, chunks):
+        res = chaudio.util.concatenate([chunk for chunk in chunks])
+        for i in range(0, res.channels):
+            res[i] = res[i][:self.audio.samples]
         return res
 
-    def domain(self):
-        return self.audio.hz * np.fft.rfftfreq(self.chunk_samples)
-
-    def fft_chunks(self):
-        res = []
+    def chunks(self):
         for i in range(0, len(self)):
-            res.append(self.get_fft_chunk(i))
-        return res
-    
-    def ifft_chunks(self, chunks):
-        res = []
-        for i in range(0, len(chunks)):
-            res.append(self.inverse_fft_chunk(chunks[i]))
-        return res
+            yield self.chunk(i)
 
-    def get_fft_chunk(self, i):
-        # returns list of channel tuples with (freq domain, values)
-        raw_chunk = self.get_data_chunk(i)
-        fft_res = []
-        for channel in raw_chunk:
-            fft_res.append(np.fft.rfft(channel, n=self.chunk_samples))
-        return fft_res
-
-    def get_data_chunk(self, i):
-        if self.chunk_samples * (i + 1) > len(self.audio[0]):
-            chunk = self.audio[:][self.chunk_samples * i:]
-            chunk = np.append(chunk, np.zeros(self.chunk_samples - len(chunk)))
+    def chunk(self, i):
+        # returns time, data
+        if self.hop * i + self.n > len(self.audio[0]):
+            chunk = []
+            for j in self.audio[:]:
+                tchunk = j[self.hop * i:]
+                chunk.append(np.append(tchunk, np.zeros(self.n - len(tchunk))))
         else:
             chunk = []
             for j in self.audio[:]:
-                chunk.append(j[self.chunk_samples * i:self.chunk_samples * (i + 1)])
+                chunk.append(j[self.hop * i:self.hop * i + self.n])
         return chunk
 
     def __getitem__(self, key):
         if isinstance(key, int):
-            return self.get_fft_chunk(key)
+            return self.chunk(key)
         elif isinstance(key, slice):
-            return [self[i] for i in range(key)]
+            return list(self.chunks())[key]
         else:
             raise KeyError("Unknown type for FFTChunker")
 
     def __len__(self):
-        return (self.audio.samples // self.chunk_samples) + (self.audio.samples % self.chunk_samples != 0)
+        r = 0
+        while self.hop * r + self.n <= self.audio.samples:
+            r += 1
+        return r + (self.audio.samples % self.hop != 0)
+
+
+
+class FFTChunker(Chunker):
+
+    def fft_map_domain(self, chunks, func):
+        domain = self.domain()
+        res = []
+        for t, chunk in chunks:
+            res.append(chaudio.util.map_domain(t, domain, chunk, func))
+        return res
+
+    def domain(self):
+        return self.audio.hz * np.fft.rfftfreq(self.n)
+
+    def fft_chunks(self, chunks):
+        for chunk in chunks:
+            yield self.fft_chunk(chunk)
+    
+    def ifft_chunks(self, chunks):
+        for chunk in chunks:
+            yield self.ifft_chunk(chunk)
+
+    def fft_chunk(self, chunk):
+        # returns t, list of channel tuples with (freq domain, values)
+        return [np.fft.rfft(channel, n=self.n) for channel in chunk]
+
+    def ifft_chunk(self, chunk):
+        return [np.fft.irfft(channel, n=self.n) for channel in chunk]
 
 
 def transpose(hz, cents):
@@ -388,6 +465,7 @@ class TimeSignature:
         if type(key) not in (tuple, float, int):
             raise KeyError("TimeSignature key should be tuple (timesig[a,b] or timesig[a])")
 
+
         if type(key) is tuple:
             measure, beat = key
             if beat >= self.beats:
@@ -401,11 +479,14 @@ class TimeSignature:
         if beat < 0:
             raise ValueError("beat for time signature should be positive (err %s < 0)" % (beat))
 
-        return 60.0 * (self.beats * measure + beat) / self.bpm
+        return 60.0 * float(self.beats * measure + beat) / self.bpm
     
 
+    def copy(self):
+        return type(self)(self.beats, self.division, self.bpm)
+
     def __str__(self):
-        return "%d/%d" % (self.beats, self.division)
+        return "%d/%d @%dbpm" % (self.beats, self.division, self.bpm)
 
     __repr__ = __str__
 

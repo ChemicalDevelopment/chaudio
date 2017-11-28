@@ -10,7 +10,7 @@ import chaudio
 
 class Note(object):
 
-    def __init__(self, offset=(0, 0), freq="A4", t=None, **kwargs):
+    def __init__(self, offset=(0, 0), freq="A4", t=1, **kwargs):
         self.offset = offset
         self._freq = freq
         self.t = t
@@ -44,6 +44,9 @@ class Track(object):
 
         self.notes = notes
         self.timesignature = timesignature
+
+    def copy(self):
+        return type(self)(list(self.notes), self.timesignature.copy())
 
     def add_note(self, *args, **kwargs):
         if len(args) > 0:
@@ -81,6 +84,16 @@ class Track(object):
                     note.offset = (note.offset + offset[0], note.offset + offset[1])
                 else:
                     note.offset += offset
+
+    def scale(self, speed=1.0):
+        # scales it by a speed
+        for note in self.notes:
+            if isinstance(note.offset, tuple):
+                total_beats = divmod(speed * (note.offset[0] * self.timesignature.beats + note.offset[1]), self.timesignature.beats)
+                note.offset = total_beats
+            else:
+                note.offset *= speed
+
 
 
 
