@@ -43,9 +43,10 @@ setup(
 
     test_suite="chaudio.tests",
 
-    install_requires=['numpy', 'scipy', 'simpleaudio'],
+    install_requires=['numpy', 'scipy'],
     extras_require={
         'test': ['coverage'],
+        'play': ['simpleaudio']
     },
 
     data_files=[('chaudio/samples', glob.glob('chaudio/samples/*')), ('examples', glob.glob("examples/*"))],

@@ -57,9 +57,22 @@ def play(_audio, waveformat="16i"):
     waveformat : str, :class:`chaudio.io.WaveFormat`
         This describes how to convert the data. Should probably be an integer format, and the default is good enough for anyone. See :class:`chaudio.io.WaveFormat` for how to use it.
 
+    Returns
+    -------
+
+    `simpleaudio.PlayObject <http://simpleaudio.readthedocs.io/en/latest/simpleaudio.html#simpleaudio.PlayObject>`_
+        You can use this to cancel or change playback
+
     """
 
-    import simpleaudio as sa
+    try:
+        import simpleaudio as sa
+    except:
+        print ("Error, you tried to call 'chaudio.io.play' and the required package 'simpleaudio' is not installed. ")
+        print ("To enable this feature, install it now with:")
+        print ("    'pip3 install simpleaudio'")
+        exit()
+
     import atexit
 
     audio = chaudio.source.Source(_audio, dtype=np.float32)
@@ -84,8 +97,10 @@ def play(_audio, waveformat="16i"):
 
     atexit.register(play_obj.wait_done)
 
+    return play_obj
 
-def fromfile(filename):
+
+def fromfile(filename, silent=False):
     """Returns file contents of a WAVE file (either name or file pointer) as a :class:`chaudio.source.Source`
 
     Note that they are not "normalized" as in using :meth:`chaudio.util.normalize`, but rather simply converted from the internal WAVE formats (which are integers), and divided by the maximum integer of that size. That way, all WAVE formats will return (within rounding) the same result when called with this function, so the original volume is conserved. This is the behaviour audacity has when reading files, which is to convert to 32f format internally.
@@ -98,6 +113,9 @@ def fromfile(filename):
     ----------
     filename : str, file
         If a string, that file is opened, or if it is a file object already (which can be an io.StringIO object), that is used instead of opening another.
+
+    silent : bool
+        Print out what file is being used, so that the user knows what's happening
 
     Returns
     -------
@@ -141,7 +159,8 @@ def fromfile(filename):
     adata = adata.astype(np.float32) / (2.0 ** (8 * samplebytes-1))
 
     # heads up so people know what's going on
-    chaudio.msgprint("read from file " + filename)
+    if not silent:
+        chaudio.msgprint("read from file " + filename)
 
     channel_data = [None] * channels
     for i in range(0, channels):
@@ -166,7 +185,7 @@ def fromstring(strdata, *args, **kwargs):
     return fromfile(io.StringIO(strdata), *args, **kwargs)
 
 
-def tofile(filename, _audio, waveformat="16i", normalize=True):
+def tofile(filename, _audio, waveformat="16i", normalize=True, silent=False):
     """Output some sort of audio to a file (which can be a name or file pointer).
 
     Always to WAVE format, and specify ``waveformat`` in order to change what kind. Default, it is 16 bit integer (CD quality).
@@ -185,6 +204,8 @@ def tofile(filename, _audio, waveformat="16i", normalize=True):
     normalize : bool
         Whether or not to normalize before writing. This should be the default, to avoid any clipping.
 
+    silent : bool
+        Print out what file is being used, so that the user knows what's happening
 
     """
 
@@ -224,7 +245,8 @@ def tofile(filename, _audio, waveformat="16i", normalize=True):
     wout.close()
     
     # a message so users know what's happening
-    chaudio.msgprint("wrote to file " + filename)
+    if not silent:
+        chaudio.msgprint("wrote to file " + filename)
     
 
 def tostring(_audio, *args, **kwargs):

@@ -41,8 +41,10 @@ import chaudio.plugins
 import chaudio.waves
 import chaudio.instruments
 import chaudio.util
+import chaudio.util.chords
 import chaudio.io
 import chaudio.track
+import chaudio.generators
 
 # add useful aliases so frequently used functions/types are easy to access
 
