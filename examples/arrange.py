@@ -23,7 +23,7 @@ from chaudio.plugins import (Fade, Echo, Butter, Volume)
 from chaudio.arrangers import ExtendedArranger
 
 # tempo, in bpm
-tempo = 100
+tempo = 114
 
 # how many times to repeat the bar
 repeats = 4
@@ -84,6 +84,7 @@ y = ExtendedArranger(setitem="beat")
 
 bassline_instrument = chaudio.instruments.presets["bass"]
 melody_instrument = chaudio.instruments.presets["lead"]
+
 beat_instrument = chaudio.instruments.MultiSampler()
 
 beat_instrument["bass"] = chaudio.instruments.Sampler(source=chaudio.samples["bass.wav"])
@@ -101,8 +102,8 @@ for i in range(0, repeats):
 
 # export to file, and then play it through speakers
 
-chaudio.tofile("arranged.wav", y)
-#chaudio.play(y)
+#chaudio.tofile("arranged.wav", y)
+chaudio.play(y)
 
 
 # you can just output the bassline, for example

@@ -11,6 +11,8 @@ This module provides useful utilities and classes to be used elsewhere. Note tha
 
 import numpy as np
 
+import math
+
 import chaudio
 
 
@@ -103,6 +105,25 @@ def transpose(hz, cents):
     """
     return hz * 2.0 ** (cents / 1200.0)
 
+
+def cents(hz):
+    """Returns the number of cents (off of 1hz)
+
+    Parameters
+    ----------
+    hz : float, int, np.ndarray
+        Frequency, in oscillations per second
+
+    Returns
+    -------
+    float, np.ndarray
+        Cents off of 1 hz
+
+    """
+    return 1200 * np.log(hz) / np.log(2)
+
+def hz(cents):
+    return transpose(1, cents)
 
 def note(name):
     """Frequency (in hz) of the note as indicated by ``name``
@@ -339,6 +360,62 @@ class TimeSignature:
         return "%d/%d" % (self.beats, self.division)
 
     __repr__ = __str__
+
+
+def glissando_freq(sfreq, efreq, t, discrete=False):
+    """Returns an array of frequencies of a glissando starting at sfreq and ending at efreq
+
+    Parameters
+    ----------
+    sfreq : float
+        Frequency at the start of the time array
+
+    efreq : float
+        Frequency at the end of the time array
+    
+    t : np.ndarray
+        Array of time sample values
+
+    discrete : bool
+        Default=False, but if true, they are truncated to note values
+
+    Returns
+    -------
+    np.ndarray
+        Array of frequencies in corresponding to `t`
+
+    """
+
+    if isinstance(sfreq, str):
+        sfreq = note(sfreq)
+
+    if isinstance(efreq, str):
+        efreq = note(efreq)
+
+    """
+
+    math: exponential scaling, connect (st, sfreq) and (et, efreq) on the graph of y = base^(t-t[0]) * sfreq (where B is determined)
+
+    """
+
+    st = t[0]
+    et = t[-1]
+
+    tt = et - st
+
+    base = (efreq / sfreq) ** (1.0 / tt)
+
+    #steps = 12 * ((t - st) * np.log(base) + np.log(sfreq)) / np.log(2)
+    steps = 12 * ((t - st) * (np.log(efreq / sfreq)) / tt+ np.log(sfreq) - np.log(440)) / np.log(2)
+
+    if discrete:
+        steps = steps - (steps % 1)
+    
+    steps += 12 * np.log(440) / np.log(2)
+
+    freqs = hz(100 * steps)
+
+    return freqs
 
 
 
