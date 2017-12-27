@@ -49,6 +49,7 @@ class Track(object):
         return type(self)(list(self.notes), self.timesignature.copy())
 
     def add_note(self, *args, **kwargs):
+        # use like add_note((measure, beat), freq, timelength)
         if len(args) > 0:
             if isinstance(args[0], Note):
                 for arg in args:
@@ -94,7 +95,8 @@ class Track(object):
             else:
                 note.offset *= speed
 
-
+    def __str__(self):
+        return "Track %s" % (self.notes)
 
 
 

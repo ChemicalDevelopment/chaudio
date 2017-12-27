@@ -84,12 +84,6 @@ def concatenate(data):
         res.append(i)
     return res
 
-def apply_(data, conversion_lambda):
-    # conversion_lambda should be like lambda x, y: y * f(x)
-    # domain should be (x, y)
-    return conversion_lambda(np.array(data[0]), np.array(data[1]))
-
-    
 def sumdup(key, val):
     """ sums duplicates
 
@@ -225,12 +219,17 @@ class FFTChunker(Chunker):
         return [np.fft.irfft(channel, n=self.n) for channel in chunk]
 
 
-def transpose(hz, cents):
-    """Transposes a frequency value by a number of `cents <https://en.wikipedia.org/wiki/Cent_(music)>`_
 
-    Note that if both ``hz`` and ``cents`` are np arrays, their shapes must be equivalent.
+def transpose(hz, val, use_cents=True):
+    """Transposes a frequency value by a number of `cents <https://en.wikipedia.org/wiki/Cent_(music)>`_ or `semitones <https://en.wikipedia.org/wiki/Semitone>`_
 
-    The effects are thus: +1200 cents results in a shift up one octave, -1200 is a shift down one octave.
+    Note that if both ``hz`` and ``val`` are np arrays, their shapes must be equivalent.
+
+
+    When, ``use_cents==True`` The effects are thus: +1200 val results in a shift up one octave, -1200 is a shift down one octave.
+
+    When, ``use_cents==False`` The effects are thus: +12 val results in a shift up one octave, -12 is a shift down one octave.
+
 
 
     Parameters
@@ -238,16 +237,22 @@ def transpose(hz, cents):
     hz : float, int, np.ndarray
         Frequency, in oscillations per second
 
-    cents : float, int, np.ndarray
-        The number of cents to transpose ``hz``. It can be positive or negative.
+    val : float, int, np.ndarray
+        The number of cents (or semitones if ``use_cents==False``) to transpose ``hz``. It can be positive or negative.
+
+    use_cents=True : bool
+        Whether or not use use cents or semitones
 
     Returns
     -------
     float
-        Frequency, in hz, of ``hz`` shifted by ``cents``
+        Frequency, in hz, of ``hz`` shifted by ``val``
 
     """
-    return hz * 2.0 ** (cents / 1200.0)
+    if use_cents:
+        return hz * 2.0 ** (val / 1200.0)
+    else:
+        return hz * 2.0 ** (val / 12.0)
 
 
 def note(name):
@@ -280,6 +285,8 @@ def note(name):
     ValueError: invalid note name: TESTING
 
     """
+    if isinstance(note, float) or isinstance(note, int):
+        return note
 
     note_name = ""
     for i in name:
