@@ -15,11 +15,14 @@ import subprocess
 import tempfile
 
 
+have_matplotlib = True
+
 try:
     import matplotlib.pyplot as plt
     import matplotlib.animation as animation
     import matplotlib.ticker as ticker
 except ImportError:
+    have_matplotlib = False
     pass
 
 
@@ -64,6 +67,10 @@ def graph(audio, title="Audio Amplitude Graph", label=None):
 class Oscilliscope(object):
 
     def __init__(self, data, window_time=.12, sync=None, sync_time=None, fps=24, audio_playback=True, _insert_time=0, playback_speed=1.0):
+        if not have_matplotlib:
+            chaudio.msgprint("Error, cannot use 'chaudio.visuals' without installing package 'matplotlib'")
+            chaudio.msgprint("  Try: 'pip3 install matplotlib'")
+            exit(1)
         if sync_time is None:
             sync_time = window_time / 4.0
         self.y_data = chaudio.source.Mono(data)
@@ -161,8 +168,15 @@ class Oscilliscope(object):
         sample_offset = int(t * self.y_data.hz)
         samples = _samples // 2
 
+        
+
         if sample_offset - samples > len(self.y_data[0]):
-            return None
+            if sample_offset - 2 * samples < len(self.y_data[0]):
+                return np.zeros(2 * samples)
+            else:            
+                return None
+
+        
 
         # handle cases that contain values out of range (set them to 0)
         if sample_offset + samples > len(self.y_data[0]):
@@ -235,6 +249,164 @@ class Oscilliscope(object):
 
         return self.line,
 
+
+
+
+class Spectograph(object):
+
+    def __init__(self, data, samples=8192, fps=24, audio_playback=True, playback_speed=1.0):
+        if not have_matplotlib:
+            chaudio.msgprint("Error, cannot use 'chaudio.visuals' without installing package 'matplotlib'")
+            chaudio.msgprint("  Try: 'pip3 install matplotlib'")
+            exit(1)
+        self.y_data = chaudio.source.Mono(data)
+        self.samples = samples
+        self.audio_playback = audio_playback
+        self.fps = fps
+        self.playback_speed = playback_speed
+        self.fig, self.ax = plt.subplots()
+        self.ax.grid(False)
+
+        self.__is_live = True
+        self.anim = animation.FuncAnimation(self.fig, self.run_anim, blit=False, interval=1000//self.fps, repeat=False, init_func=self.anim_init, save_count=int(self.y_data.seconds * self.fps))
+        #self.anim = animation.FuncAnimation(self.fig, self.run_anim, self.data_gen, blit=False, interval=50, repeat=False, init_func=self.anim_init, save_count=int(self.y_data.seconds * self.fps))
+
+    def show(self):
+        self.__is_live = True
+        self.show_time = time.time()
+        if self.audio_playback:
+            playback = chaudio.play(self.y_data)
+
+        def handle_close(evt):
+            playback.stop()
+
+        self.fig.canvas.mpl_connect('close_event', handle_close)
+        plt.show()
+
+    def anim_init(self):
+        #self.hist = self.ax.hist(x, 20, normed=1, histtype='stepfilled', facecolor='g', alpha=0.75)
+        #self.line, = self.ax.plot([], [], lw=1)
+        return None
+
+    def save(self, *args, **kwargs):
+        if self.audio_playback:
+            FNULL = open(os.devnull, 'w')
+            if subprocess.call([plt.rcParams['animation.ffmpeg_path'], '-h'], stdout=FNULL, stderr=FNULL) != 0:
+                do_audio_playback = False
+                chaudio.msgprint("warning: 'ffmpeg' support not found. Please install ffmpeg, or ensure that the 'ffmpeg' binary is on your PATH")
+            else:
+                do_audio_playback = True
+                args = list(args)
+                output_file = args[0]
+                args[0] = tempfile.mkstemp(prefix='chaudio_video_tmp', suffix=os.path.splitext(output_file)[1])[1]
+                args = tuple(args)
+            FNULL.close()
+
+        if "fps" not in kwargs:
+            kwargs["fps"] = self.fps
+        if "writer" not in kwargs:
+            _, ext = os.path.splitext(args[0])
+            if ext.lower() == ".gif":
+                kwargs["writer"] = "imagemagick"
+            else:
+                Writer = animation.writers['ffmpeg']
+                kwargs["writer"] = Writer(fps=kwargs["fps"])
+
+        del kwargs["fps"]
+
+        self.__is_live = False
+
+        self.anim.save(*args, **kwargs)
+
+
+        if do_audio_playback:
+            audio_file = tempfile.mkstemp(prefix='chaudio_playback_tmp', suffix='.wav')[1]
+
+            chaudio.tofile(audio_file, self.y_data, silent=True)
+
+            #ffmpeg -i graph.mp4 -i sound.wav -c:v copy -c:a aac -strict experimental output.mp4 -y
+
+            FNULL = open(os.devnull, 'w')
+
+            rcode = subprocess.call([plt.rcParams['animation.ffmpeg_path'], 
+                '-i', args[0], 
+                '-i', audio_file, 
+                '-c:v', 'copy',
+                '-c:a', 'aac',
+                '-strict', 'experimental',
+                output_file,
+                '-y'
+            ], stdout=FNULL, stderr=FNULL)
+            FNULL.close()
+
+            if rcode != 0:
+                chaudio.msgprint("warning: ffmpeg code was non-zero (got %d)" % rcode)
+
+            os.remove(args[0])
+
+        chaudio.msgprint("wrote to file %s" % output_file)
+
+
+    def data_gen_specific(self, t):
+        sample_offset = int(t * self.y_data.hz)
+        samples = self.samples
+
+        if sample_offset - samples > len(self.y_data[0]):
+            return None
+        elif sample_offset > len(self.y_data[0]):
+            return np.zeros(samples)
+        elif sample_offset + samples > len(self.y_data[0]):
+            available = self.y_data[0][sample_offset:]
+            return np.append(available, np.zeros(samples - len(available)))
+        else:
+            return self.y_data[0][sample_offset:sample_offset + samples]
+
+    def run_anim(self, frame):
+        t_offset = float(frame + 1) / self.fps
+
+        if self.__is_live:
+            t_offset = time.time() - self.show_time
+
+        y = self.data_gen_specific(t_offset)
+
+        if y is None or len(y) <= 1:
+            return
+
+        fft_r = np.fft.rfft(y)
+        f_domain = np.fft.rfftfreq(len(y)) * self.y_data.hz
+        f_levels = y.copy()
+
+
+        mags = 2 * np.abs(fft_r) / len(y)
+        
+        mags[np.where(mags <= 0)] = .000000001
+        f_levels = 10 * np.log10(mags)
+
+        self.ax.clear()
+        self.ax.plot(f_domain, f_levels, lw=.7)
+        
+        #self.ax.scatter(f_domain, f_levels, s=1.0/2.0)
+        #self.ax.hist(f_levels, 40, normed=1, histtype='stepfilled', facecolor='g', alpha=0.75)
+
+        self.ax.set_xlim(20, 20000)
+        self.ax.set_ylim(-40, 10)
+
+        self.ax.set_xscale('log')
+
+        self.ax.xaxis.set_ticks([100, 500, 1000, 2000, 5000, 10000, 20000])
+
+        def formatter(freq, _):
+            if freq < 1000:
+                return "%d" % freq
+            else:
+                return "%dk" % (freq // 1000)
+
+        self.ax.xaxis.set_major_formatter(ticker.FuncFormatter(formatter))
+        self.ax.figure.canvas.draw()
+
+        #self.line.set_data(f_domain, f_levels)
+
+        #return self.line,
 
 #Writer = animation.writers['ffmpeg']
 #writer = Writer(fps=24, metadata=dict(artist='Me'), bitrate=1800)

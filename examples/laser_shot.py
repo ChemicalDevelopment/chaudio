@@ -19,7 +19,7 @@ inst = chaudio.instruments.presets["lead"]
 y = inst.note(freq=thz, t=t)
 
 # store it, or play it through speakers
-#chaudio.tofile("laser_shot.wav", y)
-chaudio.play(y)
+chaudio.tofile("laser_shot.wav", y)
+#chaudio.play(y)
 
 

@@ -6,9 +6,10 @@ import chaudio.visuals
 y = chaudio.fromfile("arranged.wav")
 
 
-osc = chaudio.visuals.Oscilliscope(y)
+spec = chaudio.visuals.Spectograph(y)
 
-osc.save("output.mp4")
+#spec.show()
+spec.save("spec.mp4")
 
 #Writer = animation.writers['ffmpeg']
 #writer = Writer(fps=24, metadata=dict(artist='Me'), bitrate=1800)
