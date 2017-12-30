@@ -52,7 +52,8 @@ class Basic(object):
             self.kwargs[key] = val
 
 
-from chaudio.plugins import (echo, fade, filters, noise, resolution, volume, pitchshift, stretch)
+from chaudio.plugins import (echo, fade, filters, noise, resolution, volume, pitchshift, stretch, flanger, topcropper)
+
 
 # aliases
 Echo = echo.Echo
@@ -63,6 +64,6 @@ Resolution = resolution.Resolution
 PitchShift = pitchshift.PitchShift
 Volume = volume.Volume
 Stretch = stretch.Stretch
-
-
+Flanger = flanger.Flanger
+TopCropper = topcropper.TopCropper
 

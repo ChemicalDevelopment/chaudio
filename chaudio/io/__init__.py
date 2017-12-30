@@ -227,7 +227,7 @@ def tofile(filename, _audio, waveformat="16i", normalize=True, silent=False):
     raw_data = np.zeros((len(audio) * audio.channels, ), dtype=waveformat.dtype)
 
     for i in range(0, audio.channels):
-        raw_data[i::audio.channels] = (waveformat.scale_factor * audio[i][:]) // 1
+        raw_data[i::audio.channels] = (waveformat.scale_factor * audio[i][:] + .5) // 1
 
     # special care must be taken to pack the values as u8 's
     if waveformat.name == "24i":
