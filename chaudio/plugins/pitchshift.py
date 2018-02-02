@@ -26,7 +26,7 @@ class PitchShift(Basic):
         :"cents": cents to transpose
 
         """
-        n = self.getarg("n", 2048*4)
+        n = self.getarg("n", 1024*4)
         chunker = FFTChunker(_data, n=n, hop=self.getarg("hop", n // 4))
         cents = self.getarg("cents", 0)
 
@@ -39,70 +39,64 @@ class PitchShift(Basic):
 
         stretch_factor = transpose(1, -cents)
 
-        for chunk in chunker.chunks():
+        domain = chunker.domain()
+
+        samples_done = 0
+
+        for ct, chunk in enumerate(chunker.chunks()):
             #t = chunker.chunk_time_offset(ct) + chaudio.times(chunk.chunk_time(ct), chunker.audio.hz)
+            
+            t = samples_done / res.hz
 
             fchunk = chunker.fft_chunk(chunk)
-            #fchunk = chunker.fft_chunk(np.hanning(len(chunk)) * chunk)
 
-            if ct != 0:
-                """
-                last_chunk = output_chunks[-1]
+            rchunk = np.zeros_like(fchunk)
 
-                phase_shift = np.angle(fchunk) - np.angle(last_chunk)
+            for ch in range(len(fchunk)):
 
-                freq_dev = (phase_shift / (chunker.hop / chunker.audio.hz)) - chunker.domain()
+                from_i = np.array(range(len(domain))) * stretch_factor
+                from_i, tmp = from_i.astype(np.int), from_i % 1.0
 
-                true_freq = chunker.domain() + (freq_dev + np.pi) % (2 * np.pi) - np.pi
+                condition = (from_i < len(fchunk[ch]) - 1) & (from_i >= 0)
 
-                new_phase = np.angle(last_chunk) + (((chunker.hop / transpose(1, cents)) / chunker.audio.hz) * true_freq)
+                cur_phase = np.angle(fchunk[ch])
+                new_phase = (t * (1 - stretch_factor) + cur_phase) / stretch_factor
+                #new_phase = cur_phase
 
-                new_mag = np.abs(chaudio.util.map_domain(chunker.domain(), fchunk, lambda hz: transpose(hz, cents)))
+                mag = np.abs(fchunk[ch])
 
-                fchunk = new_mag * (np.cos(new_phase) + 1j * np.sin(new_phase))
+                fchunk[ch] = mag * np.exp(1j * new_phase)
 
-                """
-                new_phase = np.real(chaudio.util.map_domain(chunker.domain(), np.angle(fchunk), lambda hz: transpose(hz, cents)))
+                goodvals = np.where(condition)
+                badvals = np.where(~condition)
+                
+                a = np.zeros_like(fchunk[ch])
+                b = np.zeros_like(fchunk[ch])
 
-                for i in range(0, len(new_phase)):
-                    new_phase[i] = (new_phase[i] + np.pi) % (2 * np.pi) - np.pi
+                a[badvals] = 0
+                b[badvals] = 0
 
-                new_mag = np.abs(chaudio.util.map_domain(chunker.domain(), fchunk, lambda hz: transpose(hz, cents)))
+                a[goodvals] = fchunk[ch][goodvals]
+                b[goodvals] = np.roll(fchunk[ch], 1)[goodvals]
 
-                rchunk = []
+                rchunk[ch] = (1.0 - tmp) * a + (tmp) * b
 
-                for i in range(0, len(fchunk)):
-                    rchunk += [new_mag[i] * (np.cos(new_phase[i]) + 1j * np.sin(new_phase[i]))]
+            output_chunks += [rchunk]
 
-                fchunk = rchunk
-
-                #nchunk = chaudio.util.map_domain(chunker.domain(), chunk, lambda hz: transpose(hz, cents))
-
-            output_chunks += [fchunk]
-
-            #output_chunks += [nchunk]
             ct += 1
+
+            samples_done += len(chunk[0])
 
         ct = 0
         res.ensure(chunker.hop * len(chunker) + chunker.n)
         
-        #print (res.samples)
         for chunk in output_chunks:
             ichunk = chunker.ifft_chunk(chunk)
             for i in range(0, len(ichunk)):
                 ichunk[i] = ichunk[i][:chunker.hop]
-                #coff = int(ct * chunker.hop / transpose(1, cents))
                 coff = int(ct * chunker.hop)
                 res[i][coff:coff + len(ichunk[i])] = ichunk[i]
-            """
-            for i in range(0, len(chunk)):
-                #cres = np.hanning(len(ichunk[i])) * ichunk[i]
-                cres = ichunk[i]
-                res[i,chunker.hop * ct:chunker.hop * ct + len(cres)] = cres
-            """
             ct += 1
-
-        #mapped_domain = chunker.fft_map_domain(chunker.fft_chunks(chunker.chunks()), lambda t, freq: transpose(freq, cents))
 
         return res
         
