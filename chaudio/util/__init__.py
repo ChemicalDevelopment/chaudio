@@ -592,13 +592,13 @@ def pair_video(output, video, audio, ffmpeg_bin="ffmpeg"):
     if isinstance(audio, str):
         my_audio_out = audio
     else:
-        my_audio_out = tempfile.mkstemp(suffix=".wav")
-        chaudio.tofile(my_audio_out[1], audio)
+        my_audio_out = tempfile.mkstemp(suffix=".wav")[1]
+        chaudio.tofile(my_audio_out, audio)
 
     cmd = [
         ffmpeg_bin, 
         "-i", video,
-        "-i", my_audio_out[1],
+        "-i", my_audio_out,
         "-c:v", "copy", 
         "-c:a", "aac", 
         "-strict", "experimental", 
