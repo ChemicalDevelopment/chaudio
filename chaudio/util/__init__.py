@@ -596,7 +596,7 @@ def pair_video(output, video, audio, ffmpeg_bin="ffmpeg"):
         chaudio.tofile(my_audio_out, audio)
 
     cmd = [
-        ffmpeg_bin, 
+        ffmpeg_bin, "-y"
         "-i", video,
         "-i", my_audio_out,
         "-c:v", "copy", 
