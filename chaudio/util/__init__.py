@@ -11,6 +11,9 @@ This module provides useful utilities and classes to be used elsewhere. Note tha
 
 import numpy as np
 
+import subprocess
+import tempfile
+
 import math
 
 import chaudio
@@ -573,6 +576,39 @@ def glissando_freq(sfreq, efreq, t, discrete=False):
     freqs = hz(100 * steps)
 
     return freqs
+
+
+def pair_video(output, video, audio, ffmpeg_bin="ffmpeg"):
+    """
+
+    Pairs an audio object with a video file
+
+    The audio object should be chaudio object, video should be a string path
+
+    """
+
+    my_audio_out = None
+
+    if isinstance(audio, str):
+        my_audio_out = audio
+    else:
+        my_audio_out = tempfile.mkstemp(suffix=".wav")
+        chaudio.tofile(my_audio_out[1], audio)
+
+    cmd = [
+        ffmpeg_bin, 
+        "-i", video,
+        "-i", my_audio_out[1],
+        "-c:v", "copy", 
+        "-c:a", "aac", 
+        "-strict", "experimental", 
+        output
+    ]
+
+    r = subprocess.call(cmd)
+    if r != 0:
+        chaudio.msgprint("error return code: " + str(r))
+
 
 
 
