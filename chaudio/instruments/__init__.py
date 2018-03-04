@@ -223,6 +223,95 @@ class MultiSampler(Instrument):
         self.sampler_dict[key] = val
 
 
+
+class Pitch808Envelope(object):
+
+    def __init__(self, s_off, t_decay):
+        """Initializes the envelope with common parameters.
+
+        Parameters
+        ----------
+
+        A : float
+            'attack' value, in seconds. Essentially the envelope is ramping up until ``A`` seconds
+        
+        D : float
+            'decay' value, in seconds. The envelope will scale gently to ``S`` between time ``A`` and ``A + D`` seconds.
+
+        S : float
+            'sustain' value, as an amplitude between 0.0 and 1.0. This is the value that the envelope holds between ``A + D`` and ``t - R`` seconds (where ``t`` is the length of the segment that is being enveloped).
+
+        R : float
+            'release', value in seconds. This is the time (from the end of the time values being enveloped) that the ADSR envelope starts fading out.
+
+
+        """
+        self.kwargs = {}
+
+        self.kwargs["s_off"] = s_off
+        self.kwargs["t_decay"] = t_decay
+
+    def merged_kwargs(self, kwargs):
+        res = self.kwargs.copy()
+        for key in kwargs:
+            res[key] = kwargs[key]
+        return res
+
+    def calc_val(self, t, **kwargs):
+        """Returns the envelope values for a time sample array.
+
+        This returns the values (which are all 0.0 to 1.0) of the envelope, applied over the times given in ``t``. The result has the same length as t, so that you can apply operations to ``t`` and others. See the examples below. This is used in :class:`chaudio.instruments.Oscillator`.
+
+        Parameters
+        ----------
+
+        t : np.ndarray
+            The value of time samples. These are generated (typically) using the :meth:`chaudio.util.times` method.
+
+        kwargs : (key word args)
+            These can override ``A``, ``D``, ``S``, or ``R`` for a specific call to this function without forever replacing the defaults.
+
+        Returns
+        -------
+        
+        np.ndarray
+            A result with the same length as ``t`` (so you can do operations with them).
+
+
+        Examples
+        --------
+
+        >>> t = chaudio.util.times(4)
+        >>> wave = chaudio.waves.triangle(t, hz=220)
+        >>> env = chaudio.instruments.ADSREnvelope(A=.4, D=1.0, S=.4, R=.8)
+        >>> y = wave * env.calc_val(t)
+        >>> # y now contains the wave with the envelope value
+        >>> chaudio.play(y)
+
+        """
+
+        kwargs = self.merged_kwargs(kwargs)
+        res = t.copy()
+
+        s_o = kwargs["s_off"]
+        t_d = kwargs["t_decay"]
+
+        res[:] = 0
+
+        X = (1 - 1.0 / chaudio.util.hz(s_o)) / t_d
+
+        sfact = 1.0 / (X * t + 1.0 / chaudio.util.hz(s_o))
+        
+
+        res[sfact > 1] = chaudio.util.cents(sfact[sfact > 1])
+
+        #if t_d != 0:
+        #    res[t <= t_d] = s_o * (1.0 - t[t <= t_d] / t_d)
+
+        return res
+
+
+
 class ADSREnvelope(object):
     """
     
@@ -334,6 +423,7 @@ class ADSREnvelope(object):
         return res
 
 
+
 class LFO(object):
     def __init__(self, waveform=chaudio.waves.sin, hz=1, tweak=None, amp=1.0, dc_shift=0.0, phase_shift=0):
         self.waveform = waveform
@@ -354,7 +444,7 @@ class Oscillator(Instrument):
 
     """
 
-    def __init__(self, waveform=chaudio.waves.sin, amp=1.0, amp_env=ADSREnvelope(), amp_lfo=LFO(amp=0.0), samplerate=None, phase_shift=0, freq_shift=0, freq_lfo=LFO(amp=0.0), tweak=None, tweak_lfo=LFO(amp=0.0), pan=0, **kwargs):
+    def __init__(self, waveform=chaudio.waves.sin, amp=1.0, amp_env=ADSREnvelope(), amp_lfo=LFO(amp=0.0), samplerate=None, phase_shift=0, freq_shift=0, freq_env=Pitch808Envelope(0, 0), freq_lfo=LFO(amp=0.0), tweak=None, tweak_lfo=LFO(amp=0.0), pan=0, **kwargs):
         """Initializes an oscillator, given waveform and a host of other parameters
 
         
@@ -402,6 +492,7 @@ class Oscillator(Instrument):
         kwargs["amp_lfo"] = amp_lfo
         kwargs["samplerate"] = samplerate
         kwargs["phase_shift"] = phase_shift
+        kwargs["freq_env"] = freq_env
         kwargs["freq_shift"] = freq_shift
         kwargs["freq_lfo"] = freq_lfo
         kwargs["tweak"] = tweak
@@ -463,7 +554,7 @@ class Oscillator(Instrument):
                 elif pan > 1.0:
                     pan = 1
 
-        freq = chaudio.util.transpose(base_freq + kwargs["freq_lfo"].calc_val(t), kwargs["freq_shift"])
+        freq = chaudio.util.transpose(base_freq + kwargs["freq_lfo"].calc_val(t), kwargs["freq_shift"] + kwargs["freq_env"].calc_val(t))
         amp = amp_env.calc_val(t) * (amp + amp_lfo.calc_val(t))
         if kwargs["tweak"] is None:
             tweak = kwargs["tweak"]
@@ -561,6 +652,12 @@ class MultiOscillator(Instrument):
         self.osc.__setitem__(key)
 
 
+
+
+
+
+
+
 presets = { }
 
 presets["sin"] = Oscillator(waveform=chaudio.waves.sin)
@@ -589,8 +686,9 @@ presets["ripping_lead"].add_osc(Oscillator(waveform=chaudio.waves.saw, samplerat
 
 #presets["lead"].add_plugin(chaudio.plugins.Butter(cutoff=5000, btype="lowpass"))
 
-
-
+presets["trap_bass"] = Oscillator(waveform=chaudio.waves.square, freq_env=Pitch808Envelope(s_off=1600, t_decay=.14), freq_shift=-3600)
+presets["trap_bass"].add_plugin(chaudio.plugins.filters.Butter(cutoff=800, btype="lowpass"))
+presets["trap_bass"].add_plugin(chaudio.plugins.fade.Fade())
 
 
 
