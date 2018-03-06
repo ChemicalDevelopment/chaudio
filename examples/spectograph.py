@@ -8,8 +8,8 @@ y = chaudio.fromfile("arranged.wav")
 
 spec = chaudio.visuals.Spectograph(y)
 
-#spec.show()
-spec.save("spec.mp4")
+spec.show()
+#spec.save("spec.mp4")
 
 #Writer = animation.writers['ffmpeg']
 #writer = Writer(fps=24, metadata=dict(artist='Me'), bitrate=1800)

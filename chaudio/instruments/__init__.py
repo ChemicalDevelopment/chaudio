@@ -298,12 +298,14 @@ class Pitch808Envelope(object):
 
         res[:] = 0
 
-        X = (1 - 1.0 / chaudio.util.hz(s_o)) / t_d
-
-        sfact = 1.0 / (X * t + 1.0 / chaudio.util.hz(s_o))
+        if s_o is not None and s_o != 0:
         
+            X = (1 - 1.0 / chaudio.util.hz(s_o)) / t_d
 
-        res[sfact > 1] = chaudio.util.cents(sfact[sfact > 1])
+            sfact = 1.0 / (X * t + 1.0 / chaudio.util.hz(s_o))
+            
+
+            res[sfact > 1] = chaudio.util.cents(sfact[sfact > 1])
 
         #if t_d != 0:
         #    res[t <= t_d] = s_o * (1.0 - t[t <= t_d] / t_d)

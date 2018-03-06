@@ -102,8 +102,8 @@ for i in range(0, repeats):
 
 # export to file, and then play it through speakers
 
-#chaudio.tofile("arranged.wav", y)
-chaudio.play(y)
+chaudio.tofile("arranged.wav", y)
+#chaudio.play(y)
 
 
 # you can just output the bassline, for example
