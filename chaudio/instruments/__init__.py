@@ -302,7 +302,7 @@ class Pitch808Envelope(object):
         
             X = (1 - 1.0 / chaudio.util.hz(s_o)) / t_d
 
-            sfact = 1.0 / (X * t + 1.0 / chaudio.util.hz(s_o))
+            sfact = (1.0 / (X * t + 1.0 / chaudio.util.hz(s_o))) ** .4
             
 
             res[sfact > 1] = chaudio.util.cents(sfact[sfact > 1])
@@ -688,7 +688,7 @@ presets["ripping_lead"].add_osc(Oscillator(waveform=chaudio.waves.saw, samplerat
 
 #presets["lead"].add_plugin(chaudio.plugins.Butter(cutoff=5000, btype="lowpass"))
 
-presets["trap_bass"] = Oscillator(waveform=chaudio.waves.square, freq_env=Pitch808Envelope(s_off=1600, t_decay=.14), freq_shift=-3600)
+presets["trap_bass"] = Oscillator(waveform=chaudio.waves.square, freq_env=Pitch808Envelope(s_off=1200, t_decay=.1), freq_shift=-3600)
 presets["trap_bass"].add_plugin(chaudio.plugins.filters.Butter(cutoff=800, btype="lowpass"))
 presets["trap_bass"].add_plugin(chaudio.plugins.fade.Fade())
 
