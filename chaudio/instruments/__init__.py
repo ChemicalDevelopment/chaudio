@@ -302,7 +302,7 @@ class Pitch808Envelope(object):
         
             X = (1 - 1.0 / chaudio.util.hz(s_o)) / t_d
 
-            sfact = (1.0 / (X * t + 1.0 / chaudio.util.hz(s_o))) ** .4
+            sfact = (1.0 / (X * t + 1.0 / chaudio.util.hz(s_o))) ** .8
             
 
             res[sfact > 1] = chaudio.util.cents(sfact[sfact > 1])
@@ -421,6 +421,80 @@ class ADSREnvelope(object):
             rel_max = t[rel_select][-1]
 
             res[rel_select] = kwargs["S"] * (1 - (t[rel_select] - rel_min) / (rel_max - rel_min))
+
+        return res
+
+
+
+class ExponentialDecayEnvelope(object):
+    """
+    
+    Exponential decay
+
+
+    """
+    def __init__(self, predelay=0.0, decay=.5):
+        """Initializes the envelope with common parameters.
+
+        Parameters
+        ----------
+
+        predelay : float
+            seconds before it starts decaying
+
+        decay : float
+            Factor the envlope decreases by each second
+
+        """
+        self.kwargs = {}
+
+        self.kwargs["predelay"] = predelay
+        self.kwargs["decay"] = decay
+
+    def merged_kwargs(self, kwargs):
+        res = self.kwargs.copy()
+        for key in kwargs:
+            res[key] = kwargs[key]
+        return res
+
+    def calc_val(self, t, **kwargs):
+        """Returns the envelope values for a time sample array.
+
+        This returns the values (which are all 0.0 to 1.0) of the envelope, applied over the times given in ``t``. The result has the same length as t, so that you can apply operations to ``t`` and others. See the examples below. This is used in :class:`chaudio.instruments.Oscillator`.
+
+        Parameters
+        ----------
+
+        t : np.ndarray
+            The value of time samples. These are generated (typically) using the :meth:`chaudio.util.times` method.
+
+        kwargs : (key word args)
+            These can override ``A``, ``D``, ``S``, or ``R`` for a specific call to this function without forever replacing the defaults.
+
+        Returns
+        -------
+        
+        np.ndarray
+            A result with the same length as ``t`` (so you can do operations with them).
+
+
+        Examples
+        --------
+
+        >>> t = chaudio.util.times(4)
+        >>> wave = chaudio.waves.triangle(t, hz=220)
+        >>> env = chaudio.instruments.ADSREnvelope(A=.4, D=1.0, S=.4, R=.8)
+        >>> y = wave * env.calc_val(t)
+        >>> # y now contains the wave with the envelope value
+        >>> chaudio.play(y)
+
+        """
+
+        kwargs = self.merged_kwargs(kwargs)
+        res = t.copy()
+
+        res[t <= kwargs["predelay"]] = 1.0
+        res[t > kwargs["predelay"]] = kwargs["decay"] ** (t[t > kwargs["predelay"]] - kwargs["predelay"])
 
         return res
 
@@ -688,7 +762,7 @@ presets["ripping_lead"].add_osc(Oscillator(waveform=chaudio.waves.saw, samplerat
 
 #presets["lead"].add_plugin(chaudio.plugins.Butter(cutoff=5000, btype="lowpass"))
 
-presets["trap_bass"] = Oscillator(waveform=chaudio.waves.square, freq_env=Pitch808Envelope(s_off=1200, t_decay=.1), freq_shift=-3600)
+presets["trap_bass"] = Oscillator(waveform=chaudio.waves.triangle, amp_env=ExponentialDecayEnvelope(predelay=.4, decay=.88), freq_env=Pitch808Envelope(s_off=1200, t_decay=.15), freq_shift=-3600, tweak=.15)
 presets["trap_bass"].add_plugin(chaudio.plugins.filters.Butter(cutoff=800, btype="lowpass"))
 presets["trap_bass"].add_plugin(chaudio.plugins.fade.Fade())
 
