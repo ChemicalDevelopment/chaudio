@@ -28,6 +28,7 @@ test.py
 
 
 !chaudio/samples/*.wav
+!chaudio/samples/waveforms/*.wav
 
 __pycache__
 

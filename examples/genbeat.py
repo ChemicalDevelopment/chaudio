@@ -52,7 +52,7 @@ def gen_808s():
 
     amp_envs = (instruments.ExponentialDecayEnvelope(predelay=1.5, decay=.82), instruments.ExponentialDecayEnvelope(predelay=.4, decay=.34), instruments.ExponentialDecayEnvelope(predelay=0.0, decay=1.0))
 
-    freq_envs = (instruments.Pitch808Envelope(s_off=1200, t_decay=.06), instruments.Pitch808Envelope(s_off=1800, t_decay=.12))
+    freq_envs = (instruments.Pitch808Envelope(s_off=1200, t_decay=.06, predelay=0.06), instruments.Pitch808Envelope(s_off=1800, t_decay=.12, predelay=.06))
 
     #inst = chaudio.instruments.presets["trap_bass"]
     inst = instruments.Oscillator(freq_shift=-3600)

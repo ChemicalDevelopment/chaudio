@@ -266,4 +266,18 @@ def noise(t, hz=0, tweak=None):
 def zero(t, hz=0, tweak=None):
     return np.zeros((len(t),), dtype=np.float32)
 
+def get_sample_wave(sample_array):
+
+    sample_source = chaudio.source.Mono(sample_array)
+
+    def internal_function(t, hz, tweak=None):
+        if isinstance(t, int) or isinstance(t, float):
+            idx = int((t * hz + phase_correction(t, hz)) * len(sample_source)) % len(sample_array)
+            return sample_source.data[0][idx]
+        else:
+            idx = ((t * hz + phase_correction(t, hz)) * len(sample_array)).astype(np.int32) % len(sample_array)
+            return sample_source.data[0][idx]
+
+    return internal_function
+
 

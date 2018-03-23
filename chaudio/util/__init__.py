@@ -143,7 +143,7 @@ def fft_phase(fft_domain):
     return np.arctan2(fft_domain)
 
 class Chunker(object):
-    def __init__(self, audio, n=8192, hop=None):
+    def __init__(self, audio, n=256, hop=None):
         self.audio = chaudio.Source(audio)
         self.n = n
         if hop is None:

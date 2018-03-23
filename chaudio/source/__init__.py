@@ -386,7 +386,7 @@ class Source(object):
 
         """
 
-        assert(type(key) in (int, tuple, slice))
+        assert(type(key) in (int, tuple, slice, np.ndarray))
         if type(key) is tuple:
             # it has multiple keys, so return them each channel with the key applied
             assert(len(key) == 2)

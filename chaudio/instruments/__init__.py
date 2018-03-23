@@ -226,7 +226,7 @@ class MultiSampler(Instrument):
 
 class Pitch808Envelope(object):
 
-    def __init__(self, s_off, t_decay):
+    def __init__(self, s_off, t_decay, predelay=0.0):
         """Initializes the envelope with common parameters.
 
         Parameters
@@ -250,6 +250,7 @@ class Pitch808Envelope(object):
 
         self.kwargs["s_off"] = s_off
         self.kwargs["t_decay"] = t_decay
+        self.kwargs["predelay"] = predelay
 
     def merged_kwargs(self, kwargs):
         res = self.kwargs.copy()
@@ -295,8 +296,11 @@ class Pitch808Envelope(object):
 
         s_o = kwargs["s_off"]
         t_d = kwargs["t_decay"]
+        predelay = kwargs["predelay"]
 
         res[:] = 0
+
+        res[t < predelay] = s_o
 
         if s_o is not None and s_o != 0:
         
@@ -304,8 +308,9 @@ class Pitch808Envelope(object):
 
             sfact = (1.0 / (X * t + 1.0 / chaudio.util.hz(s_o))) ** .8
             
+            selector = (sfact > 1) & (t >= predelay)
 
-            res[sfact > 1] = chaudio.util.cents(sfact[sfact > 1])
+            res[selector] = chaudio.util.cents(sfact[selector])
 
         #if t_d != 0:
         #    res[t <= t_d] = s_o * (1.0 - t[t <= t_d] / t_d)
