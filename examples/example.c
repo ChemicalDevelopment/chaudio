@@ -8,7 +8,7 @@ int main(int argc, char ** argv) {
 
     chaudio_create_audio_from_wav_file(&audio, "../data/sin_110.wav");
 
-    chaudio_to_wav_file("../data/OUTPUT.wav", audio, CHAUDIO_WAVFMT_16I);
+    chaudio_to_wav_file("./OUTPUT.wav", audio, CHAUDIO_WAVFMT_24I);
 
     chaudio_destroy_audio(&audio);
 

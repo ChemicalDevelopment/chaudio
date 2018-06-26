@@ -161,9 +161,6 @@ int32_t chaudio_create_audio_from_wav_file(audio_t * audio, char * file_path) {
     // end file operations
     fclose(fp);
 
-    printf("%s\n", wave_header.data_chunk_header);
-
-
     int i, j;
 
     if (wave_header.format_type == 3) { // IEEE floating point
@@ -283,7 +280,7 @@ int32_t chaudio_to_wav_file(char * file_path, audio_t audio, int32_t format) {
     wav_header_t wav_header;
     memcpy(wav_header.riff, "RIFF", 4);
     memcpy(wav_header.wave, "WAVE", 4);
-    memcpy(wav_header.format_chunk_marker, "fmt\0", 4);
+    memcpy(wav_header.format_chunk_marker, "fmt ", 4);
     memcpy(wav_header.data_chunk_header, "data", 4);
 
     wav_header.format_length = 16;

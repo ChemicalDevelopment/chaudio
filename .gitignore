@@ -89,6 +89,9 @@ test.py
 
 
 *.wav
+
+!data/*.wav
+
 *.mp3
 *.ogg
 *.flac
