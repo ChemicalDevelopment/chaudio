@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.6)
 
-project (chaudio)
+project (chaudio C)
 set (CHAUDIO_VERSION_MAJOR 0)
 set (CHAUDIO_VERSION_MINOR 1)
 
@@ -28,6 +28,10 @@ include_directories("${PROJECT_BINARY_DIR}")
 include_directories("${CMAKE_SOURCE_DIR}/src")
 
 add_subdirectory (src) 
+
+
+add_subdirectory (examples) 
+
 
 install (FILES "${PROJECT_BINARY_DIR}/chaudioconfig.h" DESTINATION include)
 
