@@ -10,6 +10,7 @@ chaudio.h - common definitions
 
 #include <stdint.h>
 
+
 // defaults
 #define CHAUDIO_DEFAULT_SAMPLE_RATE 44100
 
@@ -65,8 +66,6 @@ typedef struct audio_t {
 
 } audio_t;
 
-
-
 // basic functions
 // int32_t return types are normally for errors, 0 is no error, + is status, and - is critical
 // so to check if it was successful, check (func() >= 0)
@@ -101,6 +100,8 @@ int32_t chaudio_create_audio_from_wav_file(audio_t * audio, char * file_path);
 int32_t chaudio_resize_audio(audio_t * audio, uint32_t new_length);
 
 
+int32_t chaudio_realloc(audio_t * audio, uint16_t new_channels, uint32_t new_length);
+
 // destroys/frees the audio data
 int32_t chaudio_destroy_audio(audio_t * audio);
 
@@ -109,6 +110,9 @@ int32_t chaudio_destroy_audio(audio_t * audio);
 // format is CHAUDIO_WAVFMT_* macros
 int32_t chaudio_to_wav_file(char * file_path, audio_t audio, int32_t format);
 
+
+// things to include
+#include "ch_util.h"
 
 #endif
 

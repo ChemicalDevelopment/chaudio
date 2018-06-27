@@ -249,6 +249,19 @@ int32_t chaudio_resize_audio(audio_t * audio, uint32_t new_length) {
     return 0;
 }
 
+int32_t chaudio_realloc(audio_t * audio, uint16_t new_channels, uint32_t new_length) {
+    if (audio == NULL) {
+        chaudio_set_error("'audio_t * audio' was NULL, realloc failed");
+        return -1;
+    }
+    audio->channels = new_channels;
+    audio->length = new_length;
+
+    audio->data = (double *)realloc((void *)audio->data, sizeof(double) * audio->channels * audio->length);
+
+    return -(audio->data == NULL);
+}
+
 
 int32_t chaudio_destroy_audio(audio_t * audio) {
     if (audio == NULL) {
