@@ -125,25 +125,14 @@ int32_t chaudio_create_audio_from_audio(audio_t * audio, audio_t from) {
     return res;
 }
 
-
-// need to read in file
-int32_t chaudio_create_audio_from_wav_file(audio_t * audio, char * file_path) {
+int32_t chaudio_create_audio_from_wav_fp(audio_t * audio, FILE * fp) {
     if (audio == NULL) {
         chaudio_set_error("'audio_t * audio' was NULL, creation failed");
         return -1;
     }
 
     // struct to store data 
-
     wav_header_t wave_header;
-
-    // open the file for reading
-    FILE * fp = fopen(file_path, "r");
-
-    if (fp == NULL) {
-        chaudio_set_error("opening file failed");
-        return -1;
-    }
 
     // read packed data
     fread(&wave_header, sizeof(wave_header), 1, fp);
@@ -158,11 +147,7 @@ int32_t chaudio_create_audio_from_wav_file(audio_t * audio, char * file_path) {
 
     fread(wave_data, wave_header.data_size, BUFSIZ, fp);
 
-    // end file operations
-    fclose(fp);
-
     int i, j;
-
     if (wave_header.format_type == 3) { // IEEE floating point
         if (wave_header.bits_per_sample == 8 * sizeof(float)) { // 'float' type
             float * wave_floats = (float *)wave_data;
@@ -232,6 +217,29 @@ int32_t chaudio_create_audio_from_wav_file(audio_t * audio, char * file_path) {
     return 0;
 }
 
+
+// need to read in file
+int32_t chaudio_create_audio_from_wav_file(audio_t * audio, char * file_path) {
+    if (audio == NULL) {
+        chaudio_set_error("'audio_t * audio' was NULL, creation failed");
+        return -1;
+    }
+
+    // open the file for reading
+    FILE * fp = fopen(file_path, "r");
+
+    if (fp == NULL) {
+        chaudio_set_error("opening file failed");
+        return -1;
+    }
+
+    int32_t res = chaudio_create_audio_from_wav_fp(audio, fp);
+
+    fclose(fp);
+
+    return res;
+}
+
 int32_t chaudio_resize_audio(audio_t * audio, uint32_t new_length) {
     if (audio == NULL) {
         chaudio_set_error("'audio_t * audio' was NULL, resizing failed");
@@ -250,15 +258,20 @@ int32_t chaudio_resize_audio(audio_t * audio, uint32_t new_length) {
 }
 
 int32_t chaudio_realloc(audio_t * audio, uint16_t new_channels, uint32_t new_length) {
+    //printf("entering realloc\n");
     if (audio == NULL) {
         chaudio_set_error("'audio_t * audio' was NULL, realloc failed");
         return -1;
     }
+
+    //printf(" setting members\n");
     audio->channels = new_channels;
     audio->length = new_length;
 
+    //printf(" calling func\n");
     audio->data = (double *)realloc((void *)audio->data, sizeof(double) * audio->channels * audio->length);
 
+    //printf("exiting realloc\n");
     return -(audio->data == NULL);
 }
 
@@ -282,15 +295,10 @@ int32_t chaudio_destroy_audio(audio_t * audio) {
     return res;
 }
 
-
-
-int32_t chaudio_to_wav_file(char * file_path, audio_t audio, int32_t format) {
-    if (file_path == NULL) {
-        chaudio_set_error("'file_path' for output was NULL, writing failed");
-        return -1;
-    }
+int32_t chaudio_to_wav_fp(FILE * fp, audio_t audio, int32_t format) {
 
     wav_header_t wav_header;
+
     memcpy(wav_header.riff, "RIFF", 4);
     memcpy(wav_header.wave, "WAVE", 4);
     memcpy(wav_header.format_chunk_marker, "fmt ", 4);
@@ -333,7 +341,7 @@ int32_t chaudio_to_wav_file(char * file_path, audio_t audio, int32_t format) {
         int8_t * output = (int8_t *)wav_file_result;
         for (i = 0; i < audio.length; ++i) {
             for (j = 0; j < audio.channels; ++j) {
-                output[i * audio.channels + j] = (int8_t)floor(double_limit(audio.data[i + j * audio.length], -1.0, 1.0) * 128.0);
+                output[i * audio.channels + j] = (int8_t)floor(double_limit(audio.data[i + j * audio.length], -1.0, 1.0) * 127.0);
             }
         }
 
@@ -341,7 +349,7 @@ int32_t chaudio_to_wav_file(char * file_path, audio_t audio, int32_t format) {
         int16_t * output = (int16_t *)wav_file_result;
         for (i = 0; i < audio.length; ++i) {
             for (j = 0; j < audio.channels; ++j) {
-                output[i * audio.channels + j] = (int16_t)floor(double_limit(audio.data[i + j * audio.length], -1.0, 1.0) * 32768.0);
+                output[i * audio.channels + j] = (int16_t)floor(double_limit(audio.data[i + j * audio.length], -1.0, 1.0) * 32767.0);
             }
         }
     } else if (format == CHAUDIO_WAVFMT_24I) {
@@ -351,7 +359,7 @@ int32_t chaudio_to_wav_file(char * file_path, audio_t audio, int32_t format) {
         int out_idx;
         for (i = 0; i < audio.length; ++i) {
             for (j = 0; j < audio.channels; ++j) {
-                packed_tmp = (int32_t)floor(double_limit(audio.data[i + j * audio.length], -1.0, 1.0) * 8388608.0);
+                packed_tmp = (int32_t)floor(double_limit(audio.data[i + j * audio.length], -1.0, 1.0) * 8388607.0);
                 out_idx = i * audio.channels + j;
                 packed_output[3 * out_idx + 0] = packed_tmp & 0xFF;
                 packed_output[3 * out_idx + 1] = (packed_tmp >> 8) & 0xFF;
@@ -362,24 +370,33 @@ int32_t chaudio_to_wav_file(char * file_path, audio_t audio, int32_t format) {
         int32_t * output = (int32_t *)wav_file_result;
         for (i = 0; i < audio.length; ++i) {
             for (j = 0; j < audio.channels; ++j) {
-                output[i * audio.channels + j] = (int32_t)floor(double_limit(audio.data[i + j * audio.length], -1.0, 1.0) * 2147483648.0);
+                output[i * audio.channels + j] = (int32_t)floor(double_limit(audio.data[i + j * audio.length], -1.0, 1.0) * 2147483647.0);
             }
         }
     }
 
-
-    FILE * fp = fopen(file_path, "w");
-
     fwrite(&wav_header, 1, sizeof(wav_header), fp);
     fwrite(wav_file_result, 1, wav_header.data_size, fp);
 
-    fclose(fp);
-
-
     // free array
     free(wav_file_result);
-    
 
+    return 0;
+}
+
+int32_t chaudio_to_wav_file(char * file_path, audio_t audio, int32_t format) {
+    if (file_path == NULL) {
+        chaudio_set_error("'file_path' for output was NULL, writing failed");
+        return -1;
+    }    
+
+    FILE * fp = fopen(file_path, "w");
+
+    int32_t res = chaudio_to_wav_fp(fp, audio, format);
+
+    fclose(fp);
+
+    return res;
 }
 
 

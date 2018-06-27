@@ -4,8 +4,14 @@
 
 
 
+# writing 
+add_executable(ch_write example_write.c)
+add_executable(ch_gain example_gain.c)
+add_executable(ch_plugin example_plugin.c)
 
-add_executable(example example.c)
+target_link_libraries(ch_write chaudio ${CMAKE_DL_LIBS})
+target_link_libraries(ch_gain chaudio ${CMAKE_DL_LIBS})
+target_link_libraries(ch_plugin chaudio ${CMAKE_DL_LIBS})
 
-target_link_libraries(example chaudio ${CMAKE_DL_LIBS})
+
 

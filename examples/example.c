@@ -9,8 +9,8 @@ int main(int argc, char ** argv) {
 
     chaudio_create_audio_from_wav_file(&audio, "../data/sin_110.wav");
 
-    // resample it to something lower, just to check it out
-    audio_t * result = chaudio_resample(NULL, audio, audio.sample_rate / 2);
+    // resample it to something lower, and then volume it down
+    audio_t * result = chaudio_gain(NULL, *chaudio_resample(NULL, audio, audio.sample_rate / 2), -10);
 
     /* manually set these to get cool effects
 

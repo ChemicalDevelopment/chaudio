@@ -9,15 +9,23 @@ chaudio.h - common definitions
 #define __CHAUDIO_H__
 
 #include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdbool.h>
 
 
 // defaults
+
+// this is a safe samplerate
 #define CHAUDIO_DEFAULT_SAMPLE_RATE 44100
 
-
+// a good buffer size
+#define CHAUDIO_DEFAULT_BUFFER_SIZE 256
 
 // max size a chaudio error would be
 #define CHAUDIO_MAX_ERROR_LENGTH 1024
+
+#define CHAUDIO_MAX_PARAMETER_LENGTH 1024
 
 char * chaudio_cur_error;
 
@@ -43,7 +51,7 @@ Here are all available formats for wave file output
 //#define CHAUDIO_WAVFMT_32F    0x0005
 
 
-
+// chunk of audio data
 typedef struct audio_t {
 
     // how many channels are there? 1 is mono, 2 is stereo, its probably one of those two 99% of the time
@@ -65,6 +73,8 @@ typedef struct audio_t {
 
 
 } audio_t;
+
+
 
 // basic functions
 // int32_t return types are normally for errors, 0 is no error, + is status, and - is critical
@@ -92,6 +102,10 @@ int32_t chaudio_create_audio(audio_t * audio, uint16_t channels, uint32_t length
 int32_t chaudio_create_audio_from_audio(audio_t * audio, audio_t from);
 
 
+// can use this on stdin
+int32_t chaudio_create_audio_from_wav_fp(audio_t * audio, FILE * fp);
+
+
 // creates an audio object from wave file contents
 int32_t chaudio_create_audio_from_wav_file(audio_t * audio, char * file_path);
 
@@ -106,8 +120,12 @@ int32_t chaudio_realloc(audio_t * audio, uint16_t new_channels, uint32_t new_len
 int32_t chaudio_destroy_audio(audio_t * audio);
 
 
-// output to wave file
 // format is CHAUDIO_WAVFMT_* macros
+
+// output to stream
+int32_t chaudio_to_wav_fp(FILE * fp, audio_t audio, int32_t format);
+
+// output to wave file
 int32_t chaudio_to_wav_file(char * file_path, audio_t audio, int32_t format);
 
 
