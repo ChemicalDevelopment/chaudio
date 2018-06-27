@@ -131,6 +131,8 @@ int32_t chaudio_to_wav_file(char * file_path, audio_t audio, int32_t format);
 
 // things to include
 #include "ch_util.h"
+#include "ch_plugin.h"
+#include "ch_signal.h"
 
 #endif
 

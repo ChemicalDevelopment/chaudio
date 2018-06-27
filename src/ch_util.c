@@ -226,6 +226,9 @@ audio_t * chaudio_gain(audio_t * output, audio_t input, double db) {
 
 // pad to length
 audio_t * chaudio_adjust_length(audio_t * output, audio_t input, int to_length) {
+
+    bool are_same = output != NULL && output->data != input.data;
+    
     if (output == NULL) {
         output = (audio_t *)malloc(sizeof(audio_t));
         chaudio_create_audio(output, input.channels, to_length, input.sample_rate);
@@ -234,10 +237,11 @@ audio_t * chaudio_adjust_length(audio_t * output, audio_t input, int to_length) 
         output->sample_rate = input.sample_rate;
     }
 
+
     int i, j;
     for (i = 0; i < output->length; ++i) {
         for (j = 0; j < output->channels; ++j) {
-            if (i < input.length) {
+            if (i < input.length && !are_same) {
                 output->data[i + j * output->length] = input.data[i + j * input.length];
             } else {
                 output->data[i + j * output->length] = 0.0;
