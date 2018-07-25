@@ -13,73 +13,16 @@ chaudio.h - common definitions
 #include <stdio.h>
 #include <stdbool.h>
 
+#include "ch_defs.h"
+#include "dict.h"
 
 // defaults
 
-// this is a safe samplerate
-#define CHAUDIO_DEFAULT_SAMPLE_RATE 44100
-
-// a good buffer size
-#define CHAUDIO_DEFAULT_BUFFER_SIZE 256
-
-// max size a chaudio error would be
-#define CHAUDIO_MAX_ERROR_LENGTH 1024
-
-#define CHAUDIO_MAX_PARAMETER_LENGTH 1024
-
 char * chaudio_cur_error;
-
-/*
-
-
-double floating points values are used for all internal calculations
-
-*/
-
-/*
-
-Here are all available formats for wave file output
-
-*/
-
-
-#define CHAUDIO_WAVFMT_8I     0x0001
-#define CHAUDIO_WAVFMT_16I    0x0002
-#define CHAUDIO_WAVFMT_24I    0x0003
-#define CHAUDIO_WAVFMT_32I    0x0004
-
-//#define CHAUDIO_WAVFMT_32F    0x0005
-
-
-// chunk of audio data
-typedef struct audio_t {
-
-    // how many channels are there? 1 is mono, 2 is stereo, its probably one of those two 99% of the time
-    // but it can serve as a mixer
-    uint16_t channels;
-
-    // how many samples are there in each channel (so total number of samples = channels * length)
-    uint32_t length;
-
-    // sample rate of the samples
-    uint32_t sample_rate;
-
-    // points to the data
-    // has sizeof(double) * length * channels bytes allocated to it
-    // data[0], data[1]...data[length-1] is channel 0,
-    // data[length], data[length+1]...data[2*length-1] is channel 1, 
-    // etc
-    double * data;
-
-
-} audio_t;
-
-
 
 // basic functions
 // int32_t return types are normally for errors, 0 is no error, + is status, and - is critical
 // so to check if it was successful, check (func() >= 0)
-
 
 int32_t chaudio_init();
 
@@ -93,41 +36,49 @@ char * chaudio_get_error();
 
 // ALL audio_t VARIABLES ARE UNDEFINED BEFORE A METHOD THAT STARTS WITH `chaudio_create_` has been called on them. Do not use them before that
 
+// these are the NULL audio values returned if error
+#define AUDIO_NULL ((audio_t){ .length = 0, .channels = 0, .sample_rate = 0, .data = NULL })
+
 
 // creates audio (blanks it to 0.0's)
-int32_t chaudio_create_audio(audio_t * audio, uint16_t channels, uint32_t length, uint32_t sample_rate);
+audio_t chaudio_audio_create(int64_t length, int32_t channels, int32_t sample_rate);
+audio_t chaudio_audio_create_nothing();
+
 
 // copies the audio, creating a new object
 // audio should be not created yet (if it is, use chaudio_destroy_audio(audio) then call this function)
-int32_t chaudio_create_audio_from_audio(audio_t * audio, audio_t from);
+// this copies the data
+audio_t chaudio_audio_create_audio(audio_t from);
 
 
 // can use this on stdin
-int32_t chaudio_create_audio_from_wav_fp(audio_t * audio, FILE * fp);
+audio_t chaudio_audio_create_wav_fp(FILE * fp);
 
 
 // creates an audio object from wave file contents
-int32_t chaudio_create_audio_from_wav_file(audio_t * audio, char * file_path);
+audio_t chaudio_audio_create_wav(char * file_path);
 
 
-// reallocs memory to hold new_length
-int32_t chaudio_resize_audio(audio_t * audio, uint32_t new_length);
+// reallocs memory to hold new_length of new_channels
+// sets any new memory (if any) to zeros
+// if any parameters are 0, they are assumed to be the pre-existing ones
+// new_sample_rate does nothing, just there for conveniently setting it
+int32_t chaudio_audio_realloc(audio_t * audio, int64_t new_length, int32_t new_channels, int32_t new_sample_rate);
 
-
-int32_t chaudio_realloc(audio_t * audio, uint16_t new_channels, uint32_t new_length);
+// allocates enough to hold 'tofit'
+int32_t chaudio_audio_realloc_audio(audio_t * audio, audio_t tofit);
 
 // destroys/frees the audio data
-int32_t chaudio_destroy_audio(audio_t * audio);
+int32_t chaudio_audio_free(audio_t * audio);
 
 
 // format is CHAUDIO_WAVFMT_* macros
 
 // output to stream
-int32_t chaudio_to_wav_fp(FILE * fp, audio_t audio, int32_t format);
+int32_t chaudio_audio_output_wav_fp(FILE * fp, audio_t audio, int32_t format);
 
 // output to wave file
-int32_t chaudio_to_wav_file(char * file_path, audio_t audio, int32_t format);
-
+int32_t chaudio_audio_output_wav(char * file_path, audio_t audio, int32_t format);
 
 // things to include
 #include "ch_util.h"

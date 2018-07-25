@@ -8,7 +8,6 @@
 #include <math.h>
 
 
-
 double double_limit(double x, double min_val, double max_val) {
     if (x <= min_val) {
         return min_val;
@@ -20,64 +19,52 @@ double double_limit(double x, double min_val, double max_val) {
 }
 
 
-double chaudio_get_seconds(audio_t audio) {
+double chaudio_audio_duration(audio_t audio) {
     return (double)audio.length / audio.sample_rate;
 }
 
 
-audio_t * chaudio_copy(audio_t * output, audio_t input) {
+audio_t chaudio_copy(audio_t input, audio_t * output) {
     // dont need to copy to itself
-    if (output != NULL && output->data == input.data) return output;
-
     if (output == NULL) {
-        // if its nothing, or its being called on itself
-        output = (audio_t *)malloc(sizeof(audio_t));
-        chaudio_create_audio_from_audio(output, input);
-        return output;
+        return chaudio_audio_create_audio(input);
     } else {
-        chaudio_realloc(output, input.channels, input.length);
-        output->sample_rate = input.sample_rate;
+        chaudio_audio_realloc_audio(output, input);
         int i;
         for (i = 0; i < input.length * input.channels; ++i) {
             output->data[i] = input.data[i];
         }
-        return output;
+        return *output;
     }
 }
 
 // give it NULL as output to automatically return a correctly allocated array.
 // You must free it if so
 // if output is the same as input, it is freed and a new values is returned
-audio_t * chaudio_resample(audio_t * output, audio_t input, int new_sample_rate) {
-    int new_length = (int)floor(((double)new_sample_rate * input.length) / input.sample_rate + 0.5);
+audio_t chaudio_resample(audio_t input, int64_t new_sample_rate, audio_t * output) {
+    int64_t new_length = (int)floor(((double)new_sample_rate * input.length) / input.sample_rate + 0.5);
 
-    bool are_same = (output != NULL) && (input.data == output->data);
+    audio_t res;
 
-    if (output == NULL || are_same) {
-        output = (audio_t *)malloc(sizeof(audio_t));
-        
-        if (chaudio_create_audio(output, input.channels, new_length, new_sample_rate) < 0) {
-            return NULL;
-        }
+    if (output == NULL) {
+        res = chaudio_audio_create(new_length, input.channels, new_sample_rate);
     } else {
-        if (chaudio_realloc(output, input.channels, new_length) < 0) {
-            return NULL;
-        }
+        res = *output;
+        chaudio_audio_realloc(&res, new_length, input.channels, new_sample_rate);
     }
-    output->length = new_length;
-    output->sample_rate = new_sample_rate;
 
     if (input.sample_rate % new_sample_rate == 0) {
         // perfect slicing
         int ratio = input.sample_rate / new_sample_rate;
         int i, j;
-        for (i = 0; i < output->length; ++i) {
-            for (j = 0; j < output->channels; ++j) {
-                output->data[i + j * output->length] = input.data[ratio * i + j * input.length];
+        for (i = 0; i < res.channels; ++i) {
+            for (j = 0; j < res.length; ++j) {
+                res.data[i * res.length + j] = input.data[i * input.length + j * ratio];
             }
         }
 
     } else {
+        // TODO: consider other resampling methods
         // interpolation
         double ratio = (double)input.sample_rate / new_sample_rate;
         int i, j;
@@ -87,43 +74,37 @@ audio_t * chaudio_resample(audio_t * output, audio_t input, int new_sample_rate)
 
 #define LIN_MIX(a, b, p) ((a) * (1.0 - p) + (b) * (p))
 
-        for (i = 0; i < new_length; ++i) {
-            wanted_sample = ratio * i;
-            for (j = 0; j < output->channels; ++j) {
-                s0 = input.data[(int)floor(wanted_sample) + j * input.length];
+        for (i = 0; i < res.channels; ++i) {
+            for (j = 0; j < new_length; ++j) {
+                wanted_sample = ratio * j;
+                s0 = input.data[i * input.length + (int)floor(wanted_sample)];
                 if ((int)floor(wanted_sample) >= input.length - 1) {
                     s1 = 0.0;
                 } else {
-                    s1 = input.data[(int)floor(wanted_sample) + 1 + j * input.length];
+                    s1 = input.data[i * input.length + (int)floor(wanted_sample) + 1];
                 }
                 prop = wanted_sample - floor(wanted_sample);
-                output->data[i + j * output->length] = LIN_MIX(s0, s1, prop);
+                res.data[i * res.length + j] = LIN_MIX(s0, s1, prop);
             }
         }
     }
 
+    if (output != NULL) *output = res;
 
-    if (are_same) chaudio_destroy_audio(&input);
-
-    return output;
-
-    // resample using standard appraoch
+    return res;
 }
 
 
 
-audio_t * chaudio_mix_to_mono(audio_t * output, audio_t input) {
+audio_t chaudio_mix_to_mono(audio_t input, audio_t * output) {
 
-    // this is just used for updating the length
-    bool are_same = (output != NULL) && (input.data == output->data);
+    audio_t res;
 
     // we dont need to recreate if it is the same
     if (output == NULL) {
-        output = (audio_t *)malloc(sizeof(audio_t));
-        chaudio_create_audio(output, 1, input.length, input.sample_rate);
+        res = chaudio_audio_create(input.length, 1, input.sample_rate);
     } else {
-        chaudio_realloc(output, 1, input.length);
-        output->sample_rate = input.sample_rate;
+        chaudio_audio_realloc(output, input.length, 1, input.sample_rate);
     }
 
     double cur_sum = 0.0;
@@ -135,17 +116,24 @@ audio_t * chaudio_mix_to_mono(audio_t * output, audio_t input) {
             cur_sum += input.data[i + j * input.length];
         }
         // normalized value so no clipping from mix
-        output->data[i] = cur_sum / input.channels;
+        res.data[i] = cur_sum / input.channels;
     }
 
-    return output;
+    if (output != NULL) *output = res;
+    return res;
 }
 
 
-audio_t * chaudio_normalize(audio_t * output, audio_t input) {
+audio_t chaudio_normalize(audio_t input, audio_t * output) {
+    
+    audio_t res;
 
-    bool output_exists = output != NULL;
-    bool are_same = output_exists && (input.data == output->data);
+    if (output == NULL) {
+        res = chaudio_audio_create_audio(input);
+    } else {
+        res = *output;
+        chaudio_audio_realloc_audio(&res, input);
+    }
 
     double abs_input_max;
     double tmp;
@@ -159,148 +147,114 @@ audio_t * chaudio_normalize(audio_t * output, audio_t input) {
     }
     // blank, should just copy
     if (abs_input_max == 0.0) {
-        if (are_same) {
-            // do nothing, its normalized
-        } else {
-            if (output_exists) {
-                chaudio_realloc(output, input.channels, input.length);
-                output->sample_rate = input.sample_rate;
-            } else {
-                output = (audio_t *)malloc(sizeof(audio_t));
-                chaudio_create_audio(output, input.channels, input.length, input.sample_rate);
-            }
-        }
-    } else if (abs_input_max == 1.0) { // already normalized
-        if (are_same) {
-            // do nothing, its normalized
-        } else {
-            if (output_exists) {
-                chaudio_copy(output, input);
-            } else {
-                output = (audio_t *)malloc(sizeof(audio_t));
-                chaudio_copy(output, input);
-            }
+        for (i = 0; i < res.length * res.channels; ++i) {
+            res.data[i] = 0.0;
         }
     } else {
-        if (output_exists) {
-            chaudio_realloc(output, input.channels, input.length);
-            output->sample_rate = input.sample_rate;
-        } else {
-            output = (audio_t *)malloc(sizeof(audio_t));
-            chaudio_create_audio(output, input.channels, input.length, input.sample_rate);
-        }
-        for (i = 0; i < input.length * input.channels; ++i) {
-            output->data[i] = input.data[i] / abs_input_max;
+        for (i = 0; i < res.length * res.channels; ++i) {
+            res.data[i] = input.data[i] / abs_input_max;
         }
     }
 
-    return output;
+    if (output != NULL) *output = res;
+
+    return res;
 }
 
 // audio re-voluming
-audio_t * chaudio_gain(audio_t * output, audio_t input, double db) {
-    bool output_exists = output != NULL;
-    bool are_same = output_exists && (input.data == output->data);
+audio_t chaudio_gain(audio_t input, double db, audio_t * output) {
+    audio_t res;
+
+    if (output == NULL) {
+        res = chaudio_audio_create_audio(input);
+    } else {
+        res = *output;
+        chaudio_audio_realloc_audio(&res, input);
+    }
 
     double coef = GAIN_COEF(db);
 
-    if (output_exists) {
-        if (are_same) {
-            // do nothing
-        } else {
-            chaudio_realloc(output, input.channels, input.length);
-            output->sample_rate = input.sample_rate;
-        }
-    } else {
-        output = (audio_t *)malloc(sizeof(audio_t));
-        chaudio_create_audio(output, input.channels, input.length, input.sample_rate);
-    }
-
     int i;
     for (i = 0; i < input.length * input.channels; ++i) {
-        output->data[i] = coef * input.data[i];
+        res.data[i] = coef * input.data[i];
     }
 
-    return output;
+    if (output != NULL) *output = res;
+
+    return res;
 }
 
-// pad to length
-audio_t * chaudio_adjust_length(audio_t * output, audio_t input, int to_length) {
-
-    bool are_same = output != NULL && output->data != input.data;
-    
+audio_t chaudio_pad(audio_t input, int64_t added_zeros, audio_t * output) {
     if (output == NULL) {
-        output = (audio_t *)malloc(sizeof(audio_t));
-        chaudio_create_audio(output, input.channels, to_length, input.sample_rate);
+        chaudio_copy(input, output);
+        chaudio_audio_realloc(output, input.length + added_zeros, 0, 0);
     } else {
-        chaudio_realloc(output, input.channels, to_length);
-        output->sample_rate = input.sample_rate;
-    }
-
-
-    int i, j;
-    for (i = 0; i < output->length; ++i) {
-        for (j = 0; j < output->channels; ++j) {
-            if (i < input.length && !are_same) {
-                output->data[i + j * output->length] = input.data[i + j * input.length];
-            } else {
-                output->data[i + j * output->length] = 0.0;
-            }
-        }
+        audio_t res = chaudio_audio_create_audio(input);
+        chaudio_audio_realloc(&res, input.length + added_zeros, 0, 0);
+        return res;
     }
 }
 
-audio_t * chaudio_pad(audio_t * output, audio_t input, int added_zeros) {
-    return chaudio_adjust_length(output, input, input.length + added_zeros);
-}
+
+/*
+
+appends (or concatenates) audio to another one.
+
+The new length is their sum. 
 
 
-audio_t * chaudio_append(audio_t * output, audio_t input_A, audio_t input_B) {
-    int new_length = input_A.length + input_B.length;
-    int new_channels = input_A.channels;
+NOTE: The audio is NOT resampled, and the larger sample rate of the two is taken, and the other is simply treated as being that sample rate. Use `chaudio_resample` before you call this function 
+
+*/
+audio_t chaudio_append(audio_t input_A, audio_t input_B, audio_t * output) {
+    //
+    int64_t new_length = input_A.length + input_B.length;
+    int32_t new_channels = input_A.channels;
     if (input_B.channels > input_A.channels) {
         new_channels = input_B.channels;
     }
 
-    int new_sample_rate = input_A.sample_rate;
+    int32_t new_sample_rate = input_A.sample_rate;
     if (input_B.sample_rate > input_A.sample_rate) {
         new_sample_rate = input_B.sample_rate;
     }
 
+    audio_t res;
+
     if (output == NULL) {
-        output = (audio_t *)malloc(sizeof(audio_t));
-        chaudio_create_audio(output, new_channels, new_length, new_sample_rate);
+        res = chaudio_audio_create(new_length, new_channels, new_sample_rate);
     } else {
-        chaudio_realloc(output, new_channels, new_length);
-        output->sample_rate = new_sample_rate;
+        res = *output;
+        chaudio_audio_realloc(&res, new_length, new_channels, new_sample_rate);
     }
 
     int i, j;
 
     int cc = 0;
 
-    for (i = 0; i < new_length; ++i) {
-        for (j = 0; j < new_channels; ++j) {
-            if (i < input_A.length) {
-                if (j < input_A.channels) {
-                    cc = j;
+    for (i = 0; i < res.channels; ++i) {
+        for (j = 0; j < res.length; ++j) {
+            if (j < input_A.length) {
+                if (i < input_A.channels) {
+                    cc = i;
                 } else {
                     cc = 0;
                 }
-                output->data[i + j * new_length] = input_A.data[i + cc * input_A.length];
+                res.data[i * res.length + j] = input_A.data[cc * input_A.length + j];
             } else {
-                int ci = i - input_B.length;
-                if (j < input_B.channels) {
-                    cc = j;
+                int cj = j - input_B.length;
+                if (i < input_B.channels) {
+                    cc = i;
                 } else {
                     cc = 0;
                 }
-                output->data[i + j * new_length] = input_B.data[ci + cc * input_B.length];
+                res.data[i * res.length + j] = input_B.data[cc * input_B.length + cj];
             }
         }
     }
 
-    return output;
+    if (output != NULL) *output = res;
+    return res;
 }
 
 

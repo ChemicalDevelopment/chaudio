@@ -1,6 +1,6 @@
 
 
-add_library(chaudio chaudio.c ch_util.c ch_plugin.c ch_signal.c chaudio.h ch_util.h ch_plugin.h ch_signal.h)
+add_library(chaudio chaudio.c ch_util.c ch_plugin.c dict.c ch_signal.c chaudio.h ch_util.h ch_plugin.h ch_signal.h dict.h)
 
 
 

@@ -29,11 +29,11 @@ include_directories("${CMAKE_SOURCE_DIR}/src")
 
 add_subdirectory (src) 
 
-
 add_subdirectory (examples) 
 
 
 install (FILES "${PROJECT_BINARY_DIR}/chaudioconfig.h" DESTINATION include)
+install (FILES "${PROJECT_BINARY_DIR}/ch_defs.h" DESTINATION include)
 
 
 

@@ -11,8 +11,7 @@
 
 int main(int argc, char ** argv) {
 
-
-    //printf("asdasdf\n");
+    chaudio_init();
 
     // what is our input/output?
     char * input_file = NULL;
@@ -45,21 +44,21 @@ int main(int argc, char ** argv) {
 
     // read in the file
     if (input_file == NULL || strcmp(input_file, "-") == 0) {
-        chaudio_create_audio_from_wav_fp(&audio, stdin);
+        audio = chaudio_audio_create_wav_fp(stdin);
     } else {
-        chaudio_create_audio_from_wav_file(&audio, input_file);
+        audio = chaudio_audio_create_wav(input_file);
     }
+
 
     // output it
     if (output_file == NULL || strcmp(output_file, "-") == 0) {
-        
-        chaudio_to_wav_fp(stdout, audio, CHAUDIO_WAVFMT_16I);
+        chaudio_audio_output_wav_fp(stdout, audio, CHAUDIO_WAVFMT_16I);
     } else {
-        chaudio_to_wav_file(output_file, audio, CHAUDIO_WAVFMT_16I);
+        chaudio_audio_output_wav(output_file, audio, CHAUDIO_WAVFMT_16I);
     }
 
 
-    chaudio_destroy_audio(&audio);
+    chaudio_audio_free(&audio);
 
     return 0;
 }
