@@ -155,6 +155,8 @@ audio_t chaudio_audio_create_wav_fp(FILE * fp) {
     audio.sample_rate = wave_header.sample_rate;
     audio.channels = wave_header.channels;
     audio.length = 8 * wave_header.data_size / (wave_header.channels * wave_header.bits_per_sample);
+
+
     
     audio.data = (double *)malloc(sizeof(double) * audio.length * audio.channels); 
     if (audio.data == NULL) {
@@ -315,8 +317,16 @@ int32_t chaudio_audio_output_wav_fp(FILE * fp, audio_t audio, int32_t format) {
 
     wav_header_t wav_header;
 
-    memcpy(wav_header.riff, "RIFF", 4);
-    memcpy(wav_header.wave, "WAVE", 4);
+    wav_header.riff[0] = 'R';
+    wav_header.riff[1] = 'I';
+    wav_header.riff[2] = 'F';
+    wav_header.riff[3] = 'F';
+
+    wav_header.wave[0] = 'W';
+    wav_header.wave[1] = 'A';
+    wav_header.wave[2] = 'V';
+    wav_header.wave[3] = 'E';
+
     memcpy(wav_header.format_chunk_marker, "fmt ", 4);
     memcpy(wav_header.data_chunk_header, "data", 4);
 
@@ -324,8 +334,9 @@ int32_t chaudio_audio_output_wav_fp(FILE * fp, audio_t audio, int32_t format) {
 
     wav_header.format_type = 1; //1 is PCM, 3 is IEEE floating point
 
-    wav_header.channels = audio.channels;
-    wav_header.sample_rate = audio.sample_rate;
+    wav_header.channels = (uint16_t)audio.channels;
+    
+    wav_header.sample_rate = (uint32_t)audio.sample_rate;
 
     int32_t bps = 0;
     if (format == CHAUDIO_WAVFMT_8I) {
@@ -341,8 +352,8 @@ int32_t chaudio_audio_output_wav_fp(FILE * fp, audio_t audio, int32_t format) {
         return -2;
     }
 
-    wav_header.byte_rate = audio.sample_rate * audio.channels * bps / 8;
-    wav_header.block_align = audio.channels * bps / 8;
+    wav_header.byte_rate = (uint32_t)(audio.sample_rate * audio.channels * bps / 8);
+    wav_header.block_align = (uint16_t)(audio.channels * bps / 8);
     wav_header.bits_per_sample = bps;
 
     int32_t data_size = audio.length * audio.channels * bps / 8;

@@ -8,13 +8,20 @@ configure_file (
   "${PROJECT_BINARY_DIR}/docs/chaudio.texi"
 )
 
+configure_file (
+  "./channelmajor_vs_samplemajor.png"
+  "${PROJECT_BINARY_DIR}/docs/channelmajor_vs_samplemajor.png"
+  COPYONLY
+)
+
 set(info_in ${CMAKE_CURRENT_BINARY_DIR}/chaudio.texi)
 set(html_out ${CMAKE_CURRENT_BINARY_DIR}/index.html)
 #set(html_out ${CMAKE_SOURCE_DIR}/docs/index.html)
 
+# && sed -i -e "s/\.\.\//\.\//g" ${html_out}
 
 add_custom_command(OUTPUT ${html_out}
-  COMMAND ${MAKEINFO_EXECUTABLE} --no-split --fill-column=40 --html -o ${html_out} ${info_in} && sed -i -e "s/\.\.\//\.\//g" ${html_out}
+  COMMAND ${MAKEINFO_EXECUTABLE} --no-split --fill-column=40 --html -o ${html_out} ${info_in}
   DEPENDS ${info_in}
   COMMENT "Creating HTML directory ${html_out}"
   VERBATIM)

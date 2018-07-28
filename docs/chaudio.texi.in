@@ -24,7 +24,11 @@ Copyright @copyright{} 2018 ChemicalDevelopment.
 @top Chaudio Library
 
 This manual is for Chaudio
-(version @value{VERSION}).
+(version @value{VERSION}), an audio manipulation library.
+
+Chaudio's main features are: portability, ease of use, and dynamic use cases. Chaudio can be wrapped by other languages, extended through the use of its plugin system, and much more.
+
+
 @end ifnottex
 
 
@@ -75,7 +79,7 @@ typedef struct audio_t {
 
 As noted in the comments in the above example, chaudio uses `channel major` (if you are familiar with @url{https://en.wikipedia.org/wiki/Row-_and_column-major_order, row major and column major} ordering) as opposed to `sample major`. This means that the internal audio buffer stores all @code{length} samples of channel 0, then all @code{length} samples of channel 1, and so on, rather than the sample for each channel. See this image for a visual explanation:
 
-@image{../channelmajor_vs_samplemajor,,,,png}
+@image{./channelmajor_vs_samplemajor,,,,png}
 
 This layout is preferred for primarily one reason: data caching
 

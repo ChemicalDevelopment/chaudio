@@ -33,7 +33,7 @@ int main(int argc, char ** argv) {
             printf("Usage: signal [options...] [input]\n");
             printf("\n");
             printf("  -o [file]   output file (if nothing, uses stdout)\n");
-            printf("  -s [sec]    duration");
+            printf("  -s [sec]    duration\n");
             printf("  -f [hz]     frequency\n");
             printf("  -w [WAVE]   waveform (sin,square)");
             printf("  -g [n]      decibels volume\n");

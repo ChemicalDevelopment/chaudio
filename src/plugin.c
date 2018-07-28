@@ -45,10 +45,10 @@ audio_t chaudio_plugin_transform(chaudio_plugin_t * plugin, audio_t from, int32_
     // ensure enough space
     audio_t into;
     if (output == NULL) {
-        into = chaudio_audio_create(plugin->channels, from.length, from.sample_rate);
+        into = chaudio_audio_create(from.length, plugin->channels, from.sample_rate);
     } else {
         into = *output;
-        chaudio_audio_realloc(&into, plugin->channels, from.length, from.sample_rate);
+        chaudio_audio_realloc(&into, from.length, plugin->channels, from.sample_rate);
     }
     
     plugin->in = (double *)realloc(plugin->in, sizeof(double) * bufsize * plugin->channels);

@@ -78,6 +78,7 @@ int main(int argc, char ** argv) {
 
     chaudio_plugin_init(&plugin, audio.channels, audio.sample_rate);
 
+
     for (i = 0; i < n_sets; ++i) {
         chdict_set(plugin.dict, keys[i], chdictobj_double(vals[i]));
     }
@@ -92,7 +93,6 @@ int main(int argc, char ** argv) {
     } else {
         chaudio_audio_output_wav(output_file, res, CHAUDIO_WAVFMT_16I);
     }
-
 
     chaudio_audio_free(&audio);
     chaudio_audio_free(&res);
