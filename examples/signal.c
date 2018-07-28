@@ -24,13 +24,13 @@ int main(int argc, char ** argv) {
 
     double duration = 2.5;
     
-    int waveform = WAVEFORM_SIN;
+    int waveform = CHAUDIO_WAVEFORM_SIN;
     int sample_rate = CHAUDIO_DEFAULT_SAMPLE_RATE;
 
     while ((c = getopt (argc, argv, "o:g:f:s:w:h")) != (char)-1) {
         if (c == 'h') {
             printf("chaudio signal generator\n");
-            printf("Usage: ch_signal [options...] [input]\n");
+            printf("Usage: signal [options...] [input]\n");
             printf("\n");
             printf("  -o [file]   output file (if nothing, uses stdout)\n");
             printf("  -s [sec]    duration");
@@ -48,9 +48,9 @@ int main(int argc, char ** argv) {
             sscanf(optarg, "%lf", &hz);
         } else if (c == 'w') {
             if (strcmp(optarg, "sin") == 0) {
-                waveform = WAVEFORM_SIN;
+                waveform = CHAUDIO_WAVEFORM_SIN;
             } else if (strcmp(optarg, "square") == 0) {
-                waveform = WAVEFORM_SQUARE;
+                waveform = CHAUDIO_WAVEFORM_SQUARE;
             } else {
                 fprintf(stderr, "ERROR: invalid waveform\n");
                 return 1;

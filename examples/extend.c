@@ -1,11 +1,15 @@
 
+/*
+
+this program appends silence to the end of the input
+
+*/
+
 #include "chaudio.h"
 
 #include <stdlib.h>
 
-// getopt
 #include <unistd.h>
-
 #include <string.h>
 
 
@@ -17,23 +21,28 @@ int main(int argc, char ** argv) {
     char * input_file = NULL;
     char * output_file = NULL;
 
+    double silence_dur = 0.0;
+
     int i;
     char c;
 
-    while ((c = getopt (argc, argv, "i:o:h")) != (char)-1) {
+    while ((c = getopt (argc, argv, "i:o:d:h")) != (char)-1) {
         if (c == 'h') {
-            printf("chaudio write\n");
-            printf("Usage: ch_write [options...] [input]\n");
+            printf("chaudio write, writing a file to disc\n");
+            printf("Usage: write [options...] [input]\n");
             printf("\n");
-            printf("  -i          input file (if nothing, uses stdin)\n");
-            printf("  -o          output file (if nothing, uses stdout)\n");
-            printf("  -h          show this help message\n");
+            printf("  -i               input file (default is stdin)\n");
+            printf("  -o               output file (default is stdin)\n");
+            printf("  -s [dur]         how much silence to add (in seconds)\n");
+            printf("  -h               show this help message\n");
             printf("\n");
             return 0;
         } else if (c == 'i') {
             input_file = optarg;
         } else if (c == 'o') {
             output_file = optarg;
+        } else if (c == 's') {
+            sscanf(optarg, "%lf", &silence_dur);
         } else {
             printf("ERROR: incorrect argument: -%c\n", optopt);
             return 1;
@@ -48,6 +57,8 @@ int main(int argc, char ** argv) {
     } else {
         audio = chaudio_audio_create_wav(input_file);
     }
+
+    audio = chaudio_pad(audio, (int64_t)(silence_dur * audio.sample_rate), NULL);
 
 
     // output it

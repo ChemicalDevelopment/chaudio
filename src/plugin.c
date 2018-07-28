@@ -1,18 +1,20 @@
 
-#include "ch_plugin.h"
 #include "chaudio.h"
-#include "dict.h"
 
 #include <stdlib.h>
 #include <string.h>
 
+// for dynamic loading
+#include <dlfcn.h>
 
 
-chaudio_plugin_t chaudio_plugin_create(chaudio_PluginInit _init, chaudio_PluginProcess _process, chaudio_PluginFree _free) {
+chaudio_plugin_t chaudio_plugin_create(char * name, chaudio_PluginInit _init, chaudio_PluginProcess _process, chaudio_PluginFree _free) {
     chaudio_plugin_t plugin;
-    plugin.dict = (chdict_t *)malloc(sizeof(chdict_t));
 
-    chdict_init(plugin.dict);
+    plugin.name = malloc(strlen(name) + 1);
+    strcpy(plugin.name, name);
+
+    plugin.dict = NULL;
 
     plugin.plugin_data = NULL;
 
@@ -27,6 +29,10 @@ chaudio_plugin_t chaudio_plugin_create(chaudio_PluginInit _init, chaudio_PluginP
 }
 
 void chaudio_plugin_init(chaudio_plugin_t * plugin, uint32_t channels, uint32_t sample_rate) {
+    plugin->dict = (chdict_t *)malloc(sizeof(chdict_t));
+
+    chdict_init(plugin->dict);
+
     plugin->channels = channels;
     plugin->sample_rate = sample_rate;
 
@@ -68,8 +74,6 @@ audio_t chaudio_plugin_transform(chaudio_plugin_t * plugin, audio_t from, int32_
         if (plugin->process != NULL) {
             plugin->process(plugin->plugin_data, plugin->in, plugin->out, cur_len, plugin->dict);
         }
-        
-        //printf("asdf\n");
 
         // copy to output
         for (c = 0; c < plugin->channels && c < into.channels; ++c) {
@@ -78,8 +82,6 @@ audio_t chaudio_plugin_transform(chaudio_plugin_t * plugin, audio_t from, int32_
             }
         }
     }
-
-
 
     if (output != NULL) *output = into;
 
@@ -99,63 +101,29 @@ int32_t chaudio_plugin_free(chaudio_plugin_t * plugin) {
 
 /* example plugins */
 
-
-// basic storage type
-typedef struct _gain_data_s {
-    int32_t channels;
-    int32_t sample_rate;
-} gain_data_t;
-
-
-chaudio_PluginInit chaudio_gain_init(int32_t channels, int32_t sample_rate, chdict_t * dict) {
-    chdict_t * chdict = (chdict_t *)dict;
-
-    // now, register parameters (default, min, max, scale type)
-    chdict_set(chdict, "gain", chdictobj_double_info(0.0, -40.0, 40.0, PARAM_SCALE_LINEAR));
-
-    gain_data_t * this_data = (gain_data_t *)malloc(sizeof(gain_data_t));
-
-    this_data->sample_rate = sample_rate;
-    this_data->channels = channels;
-
-    // return it as a void pointer
-    return (void *)this_data;
-}
-
-chaudio_PluginProcess chaudio_gain_process(void * plugin_data, double * in, double * out, int32_t N, chdict_t * dict) {
-
-    // theoretically should NULL check here
-    chdict_t * chdict = (chdict_t *)dict;
-    gain_data_t this_data = *(gain_data_t *)plugin_data;
-
-    chdictobj_t gain_obj = chdict_get(chdict, "gain");
-
-    double gain_db = 0.0;
-    if (gain_obj.type == OBJTYPE_DOUBLE) {
-        gain_db = gain_obj.val.dval;
+chaudio_plugin_t chaudio_plugin_load(char * file_name) {
+    void * plugin_handle = dlopen(file_name, RTLD_NOW);
+    if (plugin_handle == NULL) {
+        printf("error could not open file '%s'\n", file_name);
+        return CHAUDIO_PLUGIN_NULL;
     }
 
-    double gain_coef = pow(10.0, gain_db / 20.0);
+    chaudio_plugin_t (*plugin_init_func)(chaudioplugin_init_t) = dlsym(plugin_handle, "chaudioplugin_init");
 
-    int c, i;
-    for (c = 0; c < this_data.channels; ++c) {
-        for (i = 0; i < N; ++i) {
-            out[c * N + i] = gain_coef * in[c * N + i];
-        }
+    char * result = dlerror();
+    if (plugin_init_func == NULL || result != NULL) {
+        printf("ERROR: couldn't find 'chaudioplugin_init' method for file '%s', (err='%s')\n", file_name, result);
+        return CHAUDIO_PLUGIN_NULL;
     }
 
-    return 0;
-}
+    chaudioplugin_init_t init_val = (chaudioplugin_init_t) { 
+        .chdict_get_double = chdict_get_double,
+        .chaudio_plugin_create = chaudio_plugin_create
+        
+    };
 
+    return plugin_init_func(init_val);
 
-chaudio_PluginFree chaudio_gain_free(void * plugin_data) {
-    if (plugin_data != NULL) free(plugin_data);
-}
-
-chaudio_plugin_t chaudio_plugin_gain;
-
-void chaudio_plugin_create_defaults() {
-  chaudio_plugin_gain = chaudio_plugin_create(chaudio_gain_init, chaudio_gain_process, chaudio_gain_free);
 }
 
 

@@ -1,41 +1,40 @@
 
-#include "dict.h"
-
 #include "chaudio.h"
 
-#include "ch_defs.h"
+
+
 
 
 chdictobj_t chdictobj_double(double val) {
-    return (chdictobj_t){ .type = OBJTYPE_DOUBLE, .val.dval = val, .param_info = (chparam_t) {.is_applied = 0 }};
+    return (chdictobj_t){ .type = CHAUDIO_OBJTYPE_DOUBLE, .val.dval = val, .param_info = (chparam_t) {.is_applied = 0 }};
 }
 
 chdictobj_t chdictobj_double_info(double val, double minimum, double maximum, int32_t scale) {
-    return (chdictobj_t){ .type = OBJTYPE_DOUBLE, .val.dval = val, .param_info = (chparam_t) { .minimum = minimum, .maximum = maximum, .scale = scale, .is_applied = 1 }};
+    return (chdictobj_t){ .type = CHAUDIO_OBJTYPE_DOUBLE, .val.dval = val, .param_info = (chparam_t) { .minimum = minimum, .maximum = maximum, .scale = scale, .is_applied = 1 }};
 }
 
 chdictobj_t chdictobj_int(int32_t val) {
-    return (chdictobj_t){ .type = OBJTYPE_INT, .val.ival = val, .param_info = (chparam_t) {.is_applied = 0 }};
+    return (chdictobj_t){ .type = CHAUDIO_OBJTYPE_INT, .val.ival = val, .param_info = (chparam_t) {.is_applied = 0 }};
 }
 
 chdictobj_t chdictobj_string(char * val) {
     char * res = malloc(strlen(val) + 1);
     strcpy(res, val);
-    return (chdictobj_t){ .type = OBJTYPE_STRING, .val.sval = res, .param_info = (chparam_t) {.is_applied = 0 }};
+    return (chdictobj_t){ .type = CHAUDIO_OBJTYPE_STRING, .val.sval = res, .param_info = (chparam_t) {.is_applied = 0 }};
 }
 
 chdictobj_t chdictobj_audio(audio_t val) {
-    return (chdictobj_t){ .type = OBJTYPE_AUDIO, .val.aval = chaudio_copy(val, NULL), .param_info = (chparam_t) {.is_applied = 0 }};
+    return (chdictobj_t){ .type = CHAUDIO_OBJTYPE_AUDIO, .val.aval = chaudio_copy(val, NULL), .param_info = (chparam_t) {.is_applied = 0 }};
 }
 
 chdictobj_t chdictobj_any(void * val) {
-    return (chdictobj_t){ .type = OBJTYPE_ANY, .val.pval = val, .param_info = (chparam_t) {.is_applied = 0 }};
+    return (chdictobj_t){ .type = CHAUDIO_OBJTYPE_ANY, .val.pval = val, .param_info = (chparam_t) {.is_applied = 0 }};
 }
 
 void chdictobj_free(chdictobj_t * x) {
-    if (x->type == OBJTYPE_STRING) {
+    if (x->type == CHAUDIO_OBJTYPE_STRING) {
         free(x->val.sval);
-    } else if (x->type == OBJTYPE_AUDIO) {
+    } else if (x->type == CHAUDIO_OBJTYPE_AUDIO) {
         chaudio_audio_free(&x->val.aval);
     }
 }
@@ -78,21 +77,21 @@ int _chdict_idx(chdict_t * dict, char * key) {
 
 chdictobj_t chdict_get(chdict_t * dict, char * key) {
     int idx = _chdict_idx(dict, key);
-    if (idx < 0) return (chdictobj_t){ .type = OBJTYPE_NOTFOUND, .val.pval = NULL };
+    if (idx < 0) return (chdictobj_t){ .type = CHAUDIO_OBJTYPE_NOTFOUND, .val.pval = NULL };
     else return dict->vals[idx];
 }
 
 
 double chdict_get_double(chdict_t * dict, char * key) {
     int idx = _chdict_idx(dict, key);
-    if (idx < 0 || dict->vals[idx].type != OBJTYPE_DOUBLE) return 0.0;
+    if (idx < 0 || dict->vals[idx].type != CHAUDIO_OBJTYPE_DOUBLE) return 0.0;
     else return dict->vals[idx].val.dval;
 }
 
 
 char * chdict_get_string(chdict_t * dict, char * key) {
     int idx = _chdict_idx(dict, key);
-    if (idx < 0 || dict->vals[idx].type != OBJTYPE_STRING) return NULL;
+    if (idx < 0 || dict->vals[idx].type != CHAUDIO_OBJTYPE_STRING) return NULL;
     else return dict->vals[idx].val.sval;
 }
 

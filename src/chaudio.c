@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#include "chaudioconfig.h"
+
 
 // internal structure for wave header
 
@@ -41,33 +43,59 @@ typedef struct wav_header_t {
 } wav_header_t;
 
 
-char * chaudio_cur_error = NULL;
-
+// epoch
+double chaudio_start_time = 0.0;
 
 int32_t chaudio_init() {
-    chaudio_cur_error = (char *)malloc(CHAUDIO_MAX_ERROR_LENGTH+1);
-    chaudio_cur_error[0] = (char)0;
 
-    chaudio_plugin_create_defaults();
-    
+    chaudio_start_time = chaudio_time();
+
     return 0;
 }
 
 
+#include <sys/time.h>
 
-// set the error. this is normally just used internally
-void chaudio_set_error(char * error_txt) {
-    int i;
-    for (i = 0; i < strlen(error_txt) && i < CHAUDIO_MAX_ERROR_LENGTH; ++i) {
-        chaudio_cur_error[i] = error_txt[i];
+// get time since `chaudio_init` was called, OR since the epoch if you haven't called chaudio_init
+double chaudio_time() {
+
+    struct timeval cur;
+    gettimeofday(&cur, NULL);
+
+    double time_since_epoch = (double)cur.tv_sec + cur.tv_usec / 1000000.0;
+
+    return time_since_epoch - chaudio_start_time;
+}
+
+
+// used so it doesn't need to be realloc'd or anything
+char * _build_res = NULL;
+
+char * chaudio_get_build_info() {
+
+    if (_build_res == NULL) {
+        _build_res = malloc(4096);
+
+        sprintf(_build_res, "chaudio v%d.%d", CHAUDIO_VERSION_MAJOR, CHAUDIO_VERSION_MINOR);
+        #if CHAUDIO_DEV
+        sprintf(_build_res, "%s (development build)", _build_res);
+        #elif CHAUDIO_RELEASE
+        sprintf(_build_res, "%s (release)", _build_res);
+        #else
+        sprintf(_build_res, "%s (unknown build)", _build_res);
+        #endif
+
+        sprintf(_build_res, "%s on %s at %s", _build_res, __DATE__, __TIME__);
+
+        #ifdef HAVE_SDL2
+        sprintf(_build_res, "%s (built with SDL2)", _build_res);
+        #endif
+
     }
-    chaudio_cur_error[i] = (char)0;
+
+    return _build_res;
 }
 
-// return the internal error state
-char * chaudio_get_error() {
-    return strdup(chaudio_cur_error);
-}
 
 // initialization stuff
 audio_t chaudio_audio_create(int64_t length, int32_t channels, int32_t sample_rate) {
@@ -79,8 +107,14 @@ audio_t chaudio_audio_create(int64_t length, int32_t channels, int32_t sample_ra
 
     // NULL so realloc works
     if (channels == 0 || length == 0) audio.data = NULL;
-    else audio.data = (double *)malloc(sizeof(double) * audio.channels * audio.length);
-    
+    else {
+        audio.data = (double *)malloc(sizeof(double) * audio.channels * audio.length);
+        if (audio.data == NULL) {
+            printf("OUT OF MEMORY\n");
+            exit(1);
+        }
+    }
+
     int i;
     for (i = 0; i < audio.channels * audio.length; ++i) {
         audio.data[i] = 0.0;
@@ -95,24 +129,12 @@ audio_t chaudio_audio_create_nothing() {
 audio_t chaudio_audio_create_audio(audio_t from) {
     audio_t audio;
 
-    if (from.data == NULL) {
-        chaudio_set_error("'from.data' was NULL, creation as copying failed");
-        return AUDIO_NULL;
-    }
-
     audio.channels = from.channels;
     audio.length = from.length;
     audio.sample_rate = from.sample_rate;
 
-    
-    int32_t res = 0;
-
-    if (audio.data != NULL) {
-        res = 1;
-    }
-
     audio.data = malloc(sizeof(double) * audio.channels * audio.length);
-
+    
     int i;
     for (i = 0; i < audio.channels * audio.length; ++i) {
         audio.data[i] = from.data[i];
@@ -135,6 +157,10 @@ audio_t chaudio_audio_create_wav_fp(FILE * fp) {
     audio.length = 8 * wave_header.data_size / (wave_header.channels * wave_header.bits_per_sample);
     
     audio.data = (double *)malloc(sizeof(double) * audio.length * audio.channels); 
+    if (audio.data == NULL) {
+        printf("OUT OF MEMORY\n");
+        exit(1);
+    }
 
     void * wave_data = (void *)malloc(wave_header.data_size);
 
@@ -157,7 +183,7 @@ audio_t chaudio_audio_create_wav_fp(FILE * fp) {
                 }
             } 
         } else {
-            chaudio_set_error("unknown IEEE floating point wave bit size");
+            printf("unknown floating point type\n");
             return AUDIO_NULL;
         }
     
@@ -217,7 +243,7 @@ audio_t chaudio_audio_create_wav(char * file_path) {
     FILE * fp = fopen(file_path, "r");
 
     if (fp == NULL) {
-        chaudio_set_error("opening file failed");
+        printf("opening file failed for '%s'\n", file_path);
         return AUDIO_NULL;
     }
 
@@ -232,7 +258,6 @@ audio_t chaudio_audio_create_wav(char * file_path) {
 int32_t chaudio_audio_realloc(audio_t * audio, int64_t new_length, int32_t new_channels, int32_t new_sample_rate) {
     //printf("entering \n");
     if (audio == NULL) {
-        chaudio_set_error("'audio_t * audio' was NULL, realloc failed");
         return -1;
     }
 
@@ -265,7 +290,6 @@ int32_t chaudio_audio_realloc_audio(audio_t * audio, audio_t tofit) {
 
 int32_t chaudio_audio_free(audio_t * audio) {
     if (audio == NULL) {
-        chaudio_set_error("'audio_t * audio' was NULL, destroy failed");
         return -1;
     }
 
@@ -279,6 +303,12 @@ int32_t chaudio_audio_free(audio_t * audio) {
     audio->sample_rate = CHAUDIO_DEFAULT_SAMPLE_RATE;
 
     return 0;
+}
+
+double clamp(double x, double mn, double mx) {
+    if (x < mn) return mn;
+    if (x > mx) return mx;
+    return x;
 }
 
 int32_t chaudio_audio_output_wav_fp(FILE * fp, audio_t audio, int32_t format) {
@@ -307,7 +337,7 @@ int32_t chaudio_audio_output_wav_fp(FILE * fp, audio_t audio, int32_t format) {
     } else if (format == CHAUDIO_WAVFMT_32I) {
         bps = 32;
     } else {
-        chaudio_set_error("unrecognized WAVFMT");
+        printf("unrecognized WAVFMT\n");
         return -2;
     }
 
@@ -327,7 +357,7 @@ int32_t chaudio_audio_output_wav_fp(FILE * fp, audio_t audio, int32_t format) {
         int8_t * output = (int8_t *)wav_file_result;
         for (i = 0; i < audio.length; ++i) {
             for (j = 0; j < audio.channels; ++j) {
-                output[i * audio.channels + j] = (int8_t)floor(double_limit(audio.data[i + j * audio.length], -1.0, 1.0) * 127.0);
+                output[i * audio.channels + j] = (int8_t)floor(clamp(audio.data[i + j * audio.length], -1.0, 1.0) * 127.0);
             }
         }
 
@@ -335,7 +365,7 @@ int32_t chaudio_audio_output_wav_fp(FILE * fp, audio_t audio, int32_t format) {
         int16_t * output = (int16_t *)wav_file_result;
         for (i = 0; i < audio.length; ++i) {
             for (j = 0; j < audio.channels; ++j) {
-                output[i * audio.channels + j] = (int16_t)floor(double_limit(audio.data[i + j * audio.length], -1.0, 1.0) * 32767.0);
+                output[i * audio.channels + j] = (int16_t)floor(clamp(audio.data[i + j * audio.length], -1.0, 1.0) * 32767.0);
             }
         }
     } else if (format == CHAUDIO_WAVFMT_24I) {
@@ -345,7 +375,7 @@ int32_t chaudio_audio_output_wav_fp(FILE * fp, audio_t audio, int32_t format) {
         int out_idx;
         for (i = 0; i < audio.length; ++i) {
             for (j = 0; j < audio.channels; ++j) {
-                packed_tmp = (int32_t)floor(double_limit(audio.data[i + j * audio.length], -1.0, 1.0) * 8388607.0);
+                packed_tmp = (int32_t)floor(clamp(audio.data[i + j * audio.length], -1.0, 1.0) * 8388607.0);
                 out_idx = i * audio.channels + j;
                 packed_output[3 * out_idx + 0] = packed_tmp & 0xFF;
                 packed_output[3 * out_idx + 1] = (packed_tmp >> 8) & 0xFF;
@@ -356,7 +386,7 @@ int32_t chaudio_audio_output_wav_fp(FILE * fp, audio_t audio, int32_t format) {
         int32_t * output = (int32_t *)wav_file_result;
         for (i = 0; i < audio.length; ++i) {
             for (j = 0; j < audio.channels; ++j) {
-                output[i * audio.channels + j] = (int32_t)floor(double_limit(audio.data[i + j * audio.length], -1.0, 1.0) * 2147483647.0);
+                output[i * audio.channels + j] = (int32_t)floor(clamp(audio.data[i + j * audio.length], -1.0, 1.0) * 2147483647.0);
             }
         }
     }
@@ -372,7 +402,7 @@ int32_t chaudio_audio_output_wav_fp(FILE * fp, audio_t audio, int32_t format) {
 
 int32_t chaudio_audio_output_wav(char * file_path, audio_t audio, int32_t format) {
     if (file_path == NULL) {
-        chaudio_set_error("'file_path' for output was NULL, writing failed");
+        printf("'file_path' for output was NULL, writing failed\n");
         return -1;
     }    
 

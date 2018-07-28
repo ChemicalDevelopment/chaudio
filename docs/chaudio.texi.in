@@ -1,0 +1,100 @@
+\input texinfo
+@settitle Chaudio 0.1
+
+@set VERSION @CHAUDIO_VERSION_MAJOR@.@CHAUDIO_VERSION_MINOR@
+
+@copying
+Chaudio is a library for audio manipulation
+
+Copyright @copyright{} 2018 ChemicalDevelopment.
+@end copying
+
+@titlepage
+@title Chaudio
+@page
+@vskip 0pt plus 1fill
+@insertcopying
+@end titlepage
+
+@c Output the table of the contents at the beginning.
+@contents
+
+@ifnottex
+@node Top
+@top Chaudio Library
+
+This manual is for Chaudio
+(version @value{VERSION}).
+@end ifnottex
+
+
+@menu
+* Basics::
+* Index::
+@end menu
+
+@section Basics
+@node Basics
+@chapter Basics
+
+@cindex basics
+@cindex data, storage
+Chaudio is an audio manipulation library. It can be used for loading audio sources from disk, transforming, affecting, analyzing, and processing, and then saved to disk in common readable formats (for instance, @code{.wav}).
+
+@subsection Data Storage
+
+You can find all definitions in the file @code{src/chaudio.h}, this includes well-commented portions such as the definition of the main struct @code{audio_t}:
+
+@verbatim
+/* audio_t - the primary structure of chaudio, which represents a chunk of signal of a number of channels for a length */
+typedef struct audio_t {
+
+    // how many samples are there in each channel (so total number of samples = channels * length)
+    
+    // `length`: the number of samples that the chunk of audio is representing (each channel has this many)
+    int64_t length;
+
+    // `channels`: the number of different `channels` of audio.
+    // For instance, stereo tracks are 2 channels (channel 0 is Left, channel 1 is Right). Mono is 1 channel
+    int32_t channels;
+
+    // sample rate, in samples/second. 
+    // The most widely used sample rate (44100) is defined as CHAUDIO_DEFAULT_SAMPLE_RATE
+    int32_t sample_rate;
+
+    // a pointer to memory to the sample data, with memory size of at least `sizeof(double) * channels * length`
+    // the data is stored in channels, so all of channel 0 data is the first `length` elements
+    // channel `N` occupies `length*N` through `length*(N+1)-1` elements.
+    // So, for instance, data for a stereo chunk of audio with a length of 4 would look like this: 
+    //   `LLLLRRRR`, and have 8 (==4 * 2) total doubles allocated.
+    // NOTE: This is different than many uses (portaudio, VST processing, etc) expect it, which is `LRLRLRLR`
+    double * data;
+
+} audio_t;
+@end verbatim
+
+As noted in the comments in the above example, chaudio uses `channel major` (if you are familiar with @url{https://en.wikipedia.org/wiki/Row-_and_column-major_order, row major and column major} ordering) as opposed to `sample major`. This means that the internal audio buffer stores all @code{length} samples of channel 0, then all @code{length} samples of channel 1, and so on, rather than the sample for each channel. See this image for a visual explanation:
+
+@image{@RESOURCES@/channelmajor_vs_samplemajor,,,,png}
+
+This layout is preferred for primarily one reason: data caching
+
+If the user was to effect or otherwise transform the data by channel, there would be fewer cache misses because of the samples of a channel being adjacent. Overall, however, there is probably little difference in performance on larger chunks, and most effeciency would be kept if the indexing methods were updated. 
+
+@subsection Memory management
+
+The C programming language has no garbage collection, so allocated memory areas are not automatically discarded when not being used. So, this library has functionality for creating the audio buffers, and freeing them as well.
+
+This section is not for explaining specific functions and routines for allocation, reallocation, and freeing, but rather to explain @i{how} these methods should work.
+
+
+
+
+
+
+@node Index
+@unnumbered Index
+
+@printindex cp
+
+@bye

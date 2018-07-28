@@ -1,0 +1,141 @@
+<html lang="en">
+<head>
+<title>Chaudio 0.1</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="Chaudio 0.1">
+<meta name="generator" content="makeinfo 4.8">
+<link title="Top" rel="top" href="#Top">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<!--
+Chaudio is a library for audio manipulation
+
+Copyright (C) 2018 ChemicalDevelopment.-->
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc    { font-variant:small-caps }
+  span.roman { font-family:serif; font-weight:normal; } 
+  span.sansserif { font-family:sans-serif; font-weight:normal; } 
+--></style>
+</head>
+<body>
+<h1 class="settitle">Chaudio 0.1</h1>
+<div class="contents">
+<h2>Table of Contents</h2>
+<ul>
+<li><a name="toc_Top" href="#Top">Chaudio Library</a>
+<ul>
+<li><a href="#Top">Basics</a>
+</li></ul>
+<li><a name="toc_Basics" href="#Basics">1 Basics</a>
+<ul>
+<ul>
+<li><a href="#Basics">1.0.1 Data Storage</a>
+<li><a href="#Basics">1.0.2 Memory management</a>
+</li></ul>
+</li></ul>
+<li><a name="toc_Index" href="#Index">Index</a>
+</li></ul>
+</div>
+
+
+
+<div class="node">
+<p><hr>
+<a name="Top"></a>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Basics">Basics</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#dir">(dir)</a>
+
+</div>
+
+<h2 class="unnumbered">Chaudio Library</h2>
+
+<p>This manual is for Chaudio
+(version 0.1).
+
+<ul class="menu">
+<li><a accesskey="1" href="#Basics">Basics</a>
+<li><a accesskey="2" href="#Index">Index</a>
+</ul>
+
+<h3 class="section">Basics</h3>
+
+<div class="node">
+<p><hr>
+<a name="Basics"></a>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Index">Index</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Top">Top</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
+
+</div>
+
+<h2 class="chapter">1 Basics</h2>
+
+<p><a name="index-basics-1"></a><a name="index-data_002c-storage-2"></a>Chaudio is an audio manipulation library. It can be used for loading audio sources from disk, transforming, affecting, analyzing, and processing, and then saved to disk in common readable formats (for instance, <code>.wav</code>).
+
+<h4 class="subsection">1.0.1 Data Storage</h4>
+
+<p>You can find all definitions in the file <code>src/chaudio.h</code>, this includes well-commented portions such as the definition of the main struct <code>audio_t</code>:
+
+<pre class="verbatim">
+/* audio_t - the primary structure of chaudio, which represents a chunk of signal of a number of channels for a length */
+typedef struct audio_t {
+
+    // how many samples are there in each channel (so total number of samples = channels * length)
+    
+    // `length`: the number of samples that the chunk of audio is representing (each channel has this many)
+    int64_t length;
+
+    // `channels`: the number of different `channels` of audio.
+    // For instance, stereo tracks are 2 channels (channel 0 is Left, channel 1 is Right). Mono is 1 channel
+    int32_t channels;
+
+    // sample rate, in samples/second. 
+    // The most widely used sample rate (44100) is defined as CHAUDIO_DEFAULT_SAMPLE_RATE
+    int32_t sample_rate;
+
+    // a pointer to memory to the sample data, with memory size of at least `sizeof(double) * channels * length`
+    // the data is stored in channels, so all of channel 0 data is the first `length` elements
+    // channel `N` occupies `length*N` through `length*(N+1)-1` elements.
+    // So, for instance, data for a stereo chunk of audio with a length of 4 would look like this: 
+    //   `LLLLRRRR`, and have 8 (==4 * 2) total doubles allocated.
+    // NOTE: This is different than many uses (portaudio, VST processing, etc) expect it, which is `LRLRLRLR`
+    double * data;
+
+} audio_t;
+</pre>
+
+   <p>As noted in the comments in the above example, chaudio uses `channel major` (if you are familiar with <a href="https://en.wikipedia.org/wiki/Row-_and_column-major_order">row major and column major</a> ordering) as opposed to `sample major`. This means that the internal audio buffer stores all <code>length</code> samples of channel 0, then all <code>length</code> samples of channel 1, and so on, rather than the sample for each channel. See this image for a visual explanation:
+
+   <div class="block-image"><img src="/Users/cadebrown/projects/chaudio/docs/channelmajor_vs_samplemajor.png" alt="/Users/cadebrown/projects/chaudio/docs/channelmajor_vs_samplemajor.png"></div>
+
+   <p>This layout is preferred for primarily one reason: data caching
+
+   <p>If the user was to effect or otherwise transform the data by channel, there would be fewer cache misses because of the samples of a channel being adjacent. Overall, however, there is probably little difference in performance on larger chunks, and most effeciency would be kept if the indexing methods were updated.
+
+<h4 class="subsection">1.0.2 Memory management</h4>
+
+<p>The C programming language has no garbage collection, so allocated memory areas are not automatically discarded when not being used. So, this library has functionality for creating the audio buffers, and freeing them as well.
+
+   <p>This section is not for explaining specific functions and routines for allocation, reallocation, and freeing, but rather to explain <i>how</i> these methods should work.
+
+<div class="node">
+<p><hr>
+<a name="Index"></a>
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Basics">Basics</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
+
+</div>
+
+<h2 class="unnumbered">Index</h2>
+
+<ul class="index-cp" compact>
+<li><a href="#index-basics-1">basics</a>: <a href="#Basics">Basics</a></li>
+<li><a href="#index-data_002c-storage-2">data, storage</a>: <a href="#Basics">Basics</a></li>
+   </ul></body></html>
+

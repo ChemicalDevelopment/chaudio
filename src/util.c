@@ -1,22 +1,11 @@
 
 
 #include "chaudio.h"
-#include "util.h"
 
 #include <stdlib.h>
 
 #include <math.h>
 
-
-double double_limit(double x, double min_val, double max_val) {
-    if (x <= min_val) {
-        return min_val;
-    } else if (x >= max_val) {
-        return max_val;
-    } else {
-        return x;
-    }
-}
 
 
 double chaudio_audio_duration(audio_t audio) {

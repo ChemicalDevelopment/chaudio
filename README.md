@@ -1,19 +1,28 @@
 
 # chaudio
 
-chaudio is an audio library (chemicaldevelopment audio) in C with (planned) python bindings.
+chaudio is an audio manipulation library (chemicaldevelopment audio) in C, but a usable high-level interface with memory management (but still accessible and directly editable).
 
-Meant to be mainly for signal manipulation rather than composing, but can be used that way programmatically.
+This is useful for transforming Audio to then send to other programs (for instance, `pulseaudio` or `SDL`), or perform automation on your existing audio files (for instance, join a list of `.wav` files into one larger one for use in an album video).
+
+Meant to be mainly for signal manipulation and generation rather than composing music, but can be used that way programmatically (on the list of TODO is to create more musical functionality).
+
+## Licensing
+
+Chaudio is licensed under the LGPLv3. The `L` in `LGPL` means lesser, and this license allows proprietary code bases to use free software without having to release the source code for your program. See [here](https://softwareengineering.stackexchange.com/questions/86142/what-exactly-do-i-need-to-do-if-i-use-a-lgpl-licenced-library). TL;DR: Give credit to me to your users (attribution), and include a shared version of the library so it can be updated by the users.
 
 
-Features:
+## Features
 
-  * Efficient python bindings
+  * Struct (`audio_t`) based Audio manipulation (you don't have to deal with buffers! Or worry about the lengths of allocated stuff!). All you have to call is methods.
+  * 
+
   * Implementations of common effects (filters, EQ, echo, delay, reverb, etc)
   * A programming language (similar to Csound, but more generalized) called `chlang`
   * Commandline based processing tools for fast workflows
   * Audio converter
-  * Extendendable interface (so you can write your own processing in Python, C, chlang)
+  * Extendendable interface (so you can write your own processing in Python, C, other languages)
+  * Efficient python bindings (PLANNED)
 
 
 ## Compiling
@@ -62,7 +71,7 @@ chaudio_gain(a, &b);
 
 ```
 
-Note that for the second example, `b` must be initialized!
+Note that for the second example, `b` must be initialized (which `chaudio_audio_create_blank()` does)!
 
 
 

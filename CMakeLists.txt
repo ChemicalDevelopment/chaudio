@@ -19,21 +19,35 @@ configure_file (
 
 if (CMAKE_BUILD_TYPE MATCHES RELEASE)
     message("release mode")
+    add_definitions(-DCHAUDIO_RELEASE)
 else()
     message("dev mode")
     add_definitions(-DCHAUDIO_DEV)
 endif()
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${chaudio_SOURCE_DIR}/cmake")
+
+find_package(SDL2 REQUIRED)
+
+if (SDL2_FOUND)
+    message(STATUS "Building with SDL2")
+    add_definitions(-DHAVE_SDL2)
+endif()
+
+
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories("${CMAKE_SOURCE_DIR}/src")
 
 add_subdirectory (src) 
+add_subdirectory (docs) 
 
 add_subdirectory (examples) 
 
 
 install (FILES "${PROJECT_BINARY_DIR}/chaudioconfig.h" DESTINATION include)
-install (FILES "${PROJECT_BINARY_DIR}/ch_defs.h" DESTINATION include)
+
+# install all data
+install (DIRECTORY "${PROJECT_SOURCE_DIR}/data" DESTINATION share/chaudio)
 
 
 
