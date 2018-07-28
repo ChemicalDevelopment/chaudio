@@ -1,6 +1,7 @@
 find_program(MAKEINFO_EXECUTABLE makeinfo)
 
-set(RESOURCES ${CMAKE_SOURCE_DIR}/docs)
+#set(RESOURCES ${CMAKE_SOURCE_DIR}/docs)
+set(RESOURCES https://github.com/ChemicalDevelopment/chaudio/raw/master/docs)
 
 configure_file (
   "./chaudio.texi.in"
