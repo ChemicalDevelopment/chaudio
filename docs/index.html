@@ -112,7 +112,7 @@ typedef struct audio_t {
 
    <p>As noted in the comments in the above example, chaudio uses `channel major` (if you are familiar with <a href="https://en.wikipedia.org/wiki/Row-_and_column-major_order">row major and column major</a> ordering) as opposed to `sample major`. This means that the internal audio buffer stores all <code>length</code> samples of channel 0, then all <code>length</code> samples of channel 1, and so on, rather than the sample for each channel. See this image for a visual explanation:
 
-   <div class="block-image"><img src="../channelmajor_vs_samplemajor.png" alt="../channelmajor_vs_samplemajor.png"></div>
+   <div class="block-image"><img src="./channelmajor_vs_samplemajor.png" alt="./channelmajor_vs_samplemajor.png"></div>
 
    <p>This layout is preferred for primarily one reason: data caching
 
