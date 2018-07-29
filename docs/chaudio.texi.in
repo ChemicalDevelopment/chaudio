@@ -66,24 +66,19 @@ typedef struct audio_t {
     // The most widely used sample rate (44100) is defined as CHAUDIO_DEFAULT_SAMPLE_RATE
     int32_t sample_rate;
 
-    // a pointer to memory to the sample data, with memory size of at least `sizeof(double) * channels * length`
-    // the data is stored in channels, so all of channel 0 data is the first `length` elements
-    // channel `N` occupies `length*N` through `length*(N+1)-1` elements.
+    // a pointer to memory to the sample data, with memory size of at least `sizeof(double) * length* channels`
+    // the data is stored as interlaced channels
     // So, for instance, data for a stereo chunk of audio with a length of 4 would look like this: 
-    //   `LLLLRRRR`, and have 8 (==4 * 2) total doubles allocated.
-    // NOTE: This is different than many uses (portaudio, VST processing, etc) expect it, which is `LRLRLRLR`
+    //   `LRLRLRLR`, and have 8 (==4 * 2) total doubles allocated.
     double * data;
 
 } audio_t;
+
 @end verbatim
 
-As noted in the comments in the above example, chaudio uses `channel major` (if you are familiar with @url{https://en.wikipedia.org/wiki/Row-_and_column-major_order, row major and column major} ordering) as opposed to `sample major`. This means that the internal audio buffer stores all @code{length} samples of channel 0, then all @code{length} samples of channel 1, and so on, rather than the sample for each channel. See this image for a visual explanation:
+As noted in the code sample above, chaudio stores data sample wise (`sample major`), here's an image to illustrate that:
 
-@image{./channelmajor_vs_samplemajor,,,,png}
-
-This layout is preferred for primarily one reason: data caching
-
-If the user was to effect or otherwise transform the data by channel, there would be fewer cache misses because of the samples of a channel being adjacent. Overall, however, there is probably little difference in performance on larger chunks, and most effeciency would be kept if the indexing methods were updated. 
+@image{./samplemajor,,,,png}
 
 @subsection Memory management
 

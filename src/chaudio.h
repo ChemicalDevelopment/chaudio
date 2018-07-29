@@ -85,7 +85,7 @@ utilities - macros that tell useful things about the audio data
 #define CHAUDIO_IS_STEREO(au) ((bool)((au).channels == 2))
 
 // returns the index of the sample of channel `chan` and index `i`
-#define CHAUDIO_SAMPLE_INDEX(aud, chan, i) ((aud).length * (chan) + (i))
+#define CHAUDIO_SAMPLE_INDEX(aud, chan, i) ((aud).channels * (i) + (chan))
 
 
 /*
@@ -183,12 +183,10 @@ typedef struct audio_t {
     // The most widely used sample rate (44100) is defined as CHAUDIO_DEFAULT_SAMPLE_RATE
     int32_t sample_rate;
 
-    // a pointer to memory to the sample data, with memory size of at least `sizeof(double) * channels * length`
-    // the data is stored in channels, so all of channel 0 data is the first `length` elements
-    // channel `N` occupies `length*N` through `length*(N+1)-1` elements.
+    // a pointer to memory to the sample data, with memory size of at least `sizeof(double) * length* channels`
+    // the data is stored as interlaced channels
     // So, for instance, data for a stereo chunk of audio with a length of 4 would look like this: 
-    //   `LLLLRRRR`, and have 8 (==4 * 2) total doubles allocated.
-    // NOTE: This is different than many uses (portaudio, VST processing, etc) expect it, which is `LRLRLRLR`
+    //   `LRLRLRLR`, and have 8 (==4 * 2) total doubles allocated.
     double * data;
 
 } audio_t;
@@ -249,7 +247,7 @@ typedef void * (*chaudio_PluginInit)(int32_t channels, int32_t sample_rate, chdi
 // plugin_data is the same pointer created by the ch_PluginInit function
 // returns status code (0 = sucess)
 // 'in' and 'out' are both of length N * channels,
-// they are stored Channel wise, so LLLLLLLRRRRRRRR data for stereo
+// they are stored sample wise, so LRLRLRLR data for stereo
 // there are N samples for each channel
 // dictionary may be NULL!
 // if not, cast to chdict_t *

@@ -108,7 +108,7 @@ audio_t chaudio_audio_create(int64_t length, int32_t channels, int32_t sample_ra
     // NULL so realloc works
     if (channels == 0 || length == 0) audio.data = NULL;
     else {
-        audio.data = (double *)malloc(sizeof(double) * audio.channels * audio.length);
+        audio.data = (double *)malloc(sizeof(double) * audio.length * audio.channels);
         if (audio.data == NULL) {
             printf("OUT OF MEMORY\n");
             exit(1);
@@ -116,7 +116,7 @@ audio_t chaudio_audio_create(int64_t length, int32_t channels, int32_t sample_ra
     }
 
     int i;
-    for (i = 0; i < audio.channels * audio.length; ++i) {
+    for (i = 0; i < audio.length * audio.channels; ++i) {
         audio.data[i] = 0.0;
     }
     return audio;
@@ -129,14 +129,14 @@ audio_t chaudio_audio_create_nothing() {
 audio_t chaudio_audio_create_audio(audio_t from) {
     audio_t audio;
 
-    audio.channels = from.channels;
     audio.length = from.length;
+    audio.channels = from.channels;
     audio.sample_rate = from.sample_rate;
 
-    audio.data = malloc(sizeof(double) * audio.channels * audio.length);
+    audio.data = malloc(sizeof(double) * audio.length * audio.channels);
     
     int i;
-    for (i = 0; i < audio.channels * audio.length; ++i) {
+    for (i = 0; i < audio.length * audio.channels; ++i) {
         audio.data[i] = from.data[i];
     }
 
@@ -174,14 +174,14 @@ audio_t chaudio_audio_create_wav_fp(FILE * fp) {
             float * wave_floats = (float *)wave_data;
             for (i = 0; i < audio.length; ++i) {
                 for (j = 0; j < audio.channels; ++j) {
-                    audio.data[audio.length * j + i] = wave_floats[audio.channels * i + j];
+                    audio.data[audio.channels * i + j] = wave_floats[audio.channels * i + j];
                 }
             } 
         } else if (wave_header.bits_per_sample == 8 * sizeof(double)) { // 'double' type
             double * wave_doubles = (double *)wave_data;
             for (i = 0; i < audio.length; ++i) {
                 for (j = 0; j < audio.channels; ++j) {
-                    audio.data[audio.length * j + i] = wave_doubles[audio.channels * i + j];
+                    audio.data[audio.channels * i + j] = wave_doubles[audio.channels * i + j];
                 }
             } 
         } else {
@@ -218,7 +218,7 @@ audio_t chaudio_audio_create_wav_fp(FILE * fp) {
                     int pack_idx = audio.channels * i + j;
                     constructed = wave_int8packed[3 * pack_idx + 0] + (wave_int8packed[3 * pack_idx + 1] << 8) + (wave_int8packed[3 * pack_idx + 1] << 16);
                     tmp = (double)constructed / 8388608.0;
-                    audio.data[audio.length * j + i] = tmp;
+                    audio.data[audio.channels * i + j] = tmp;
                 }
             } 
         } else if (wave_header.bits_per_sample == 8 * sizeof(int32_t)) {
@@ -227,7 +227,7 @@ audio_t chaudio_audio_create_wav_fp(FILE * fp) {
             for (i = 0; i < audio.length; ++i) {
                 for (j = 0; j < audio.channels; ++j) {
                     tmp = (double)wave_int32s[audio.channels * i + j] / 2147483648.0;
-                    audio.data[audio.length * j + i] = tmp;
+                    audio.data[audio.channels * i + j] = tmp;
                 }
             } 
         } 
@@ -275,9 +275,18 @@ int32_t chaudio_audio_realloc(audio_t * audio, int64_t new_length, int32_t new_c
     audio->data = (double *)realloc((void *)audio->data, sizeof(double) * audio->channels * audio->length);
 
     int i, j;
-    for (i = 0; i < audio->channels; ++i) {
-        for (j = (i >= old_channels ? 0 : old_length); j < audio->length; ++j) {
-            audio->data[i * audio->length + j] = 0.0;
+
+
+    // first cover all appended values to pre-existing channels
+    for (i = old_length; i < audio->length; ++i) {
+        for (j = 0; j < old_channels; ++j) {
+            audio->data[audio->channels * i + j] = 0.0;
+        }
+    }
+    // fill all new channels with 0.0's
+    for (i = 0; i < audio->length; ++i) {
+        for (j = old_channels; j < audio->channels; ++j) {
+            audio->data[audio->channels * i + j] = 0.0;
         }
     }
 
@@ -368,7 +377,7 @@ int32_t chaudio_audio_output_wav_fp(FILE * fp, audio_t audio, int32_t format) {
         int8_t * output = (int8_t *)wav_file_result;
         for (i = 0; i < audio.length; ++i) {
             for (j = 0; j < audio.channels; ++j) {
-                output[i * audio.channels + j] = (int8_t)floor(clamp(audio.data[i + j * audio.length], -1.0, 1.0) * 127.0);
+                output[i * audio.channels + j] = (int8_t)floor(clamp(audio.data[audio.channels * i + j], -1.0, 1.0) * 127.0);
             }
         }
 
@@ -376,7 +385,7 @@ int32_t chaudio_audio_output_wav_fp(FILE * fp, audio_t audio, int32_t format) {
         int16_t * output = (int16_t *)wav_file_result;
         for (i = 0; i < audio.length; ++i) {
             for (j = 0; j < audio.channels; ++j) {
-                output[i * audio.channels + j] = (int16_t)floor(clamp(audio.data[i + j * audio.length], -1.0, 1.0) * 32767.0);
+                output[i * audio.channels + j] = (int16_t)floor(clamp(audio.data[audio.channels * i + j], -1.0, 1.0) * 32767.0);
             }
         }
     } else if (format == CHAUDIO_WAVFMT_24I) {
@@ -386,7 +395,7 @@ int32_t chaudio_audio_output_wav_fp(FILE * fp, audio_t audio, int32_t format) {
         int out_idx;
         for (i = 0; i < audio.length; ++i) {
             for (j = 0; j < audio.channels; ++j) {
-                packed_tmp = (int32_t)floor(clamp(audio.data[i + j * audio.length], -1.0, 1.0) * 8388607.0);
+                packed_tmp = (int32_t)floor(clamp(audio.data[audio.channels * i + j], -1.0, 1.0) * 8388607.0);
                 out_idx = i * audio.channels + j;
                 packed_output[3 * out_idx + 0] = packed_tmp & 0xFF;
                 packed_output[3 * out_idx + 1] = (packed_tmp >> 8) & 0xFF;
@@ -397,7 +406,7 @@ int32_t chaudio_audio_output_wav_fp(FILE * fp, audio_t audio, int32_t format) {
         int32_t * output = (int32_t *)wav_file_result;
         for (i = 0; i < audio.length; ++i) {
             for (j = 0; j < audio.channels; ++j) {
-                output[i * audio.channels + j] = (int32_t)floor(clamp(audio.data[i + j * audio.length], -1.0, 1.0) * 2147483647.0);
+                output[audio.channels * i + j] = (int32_t)floor(clamp(audio.data[audio.channels * i + j], -1.0, 1.0) * 2147483647.0);
             }
         }
     }

@@ -25,10 +25,10 @@ int32_t f_process(void * _data, double * in, double * out, int32_t N, chdict_t *
 
     double gain_coef = pow(10.0, chdict_get_double(dict, "gain") / 20.0);
 
-    int c, i;
-    for (c = 0; c < data->channels; ++c) {
-        for (i = 0; i < N; ++i) {
-            out[c * N + i] = in[c * N + i] * gain_coef;
+    int i, j;
+    for (i = 0; i < N; ++i) {
+        for (j = 0; j < data->channels; ++j) {
+            out[data->channels * i + j] = in[data->channels * i + j] * gain_coef;
         }
     }
 

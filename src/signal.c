@@ -27,7 +27,7 @@ void chaudio_signal_generate(audio_t * output, int32_t waveform, double hz, doub
             cur_sample = 2.0 * (double)rand() / (RAND_MAX) - 1.0;
         }
         for (j = 0; j < output->channels; ++j) {
-            output->data[i + j * output->length] = cur_sample;
+            output->data[output->channels * i + j] = cur_sample;
         }
     }
 

@@ -60,13 +60,12 @@ audio_t chaudio_plugin_transform(chaudio_plugin_t * plugin, audio_t from, int32_
 
         // if its near the last
         if (from.length - i < bufsize) cur_len = from.length - i;
-        int32_t c, j;
+        int32_t c, j, k;
 
-        for (c = 0; c < plugin->channels && c < from.channels; ++c) {
-            for (j = 0; j < cur_len; ++j) {
-                //printf("%d\n", c * cur_len + j);
-                plugin->in[c * cur_len + j] = from.data[c * from.length + i + j];
-                plugin->out[c * cur_len + j] = (double)0.0;
+        for (j = 0; j < cur_len; ++j) {
+            for (k = 0; k < plugin->channels && k < from.channels; ++k) {
+                plugin->in[plugin->channels * j + k] = from.data[from.channels * (i + j) + k];
+                plugin->in[plugin->channels * j + k] = 0.0;
             }
         }
 
@@ -76,9 +75,10 @@ audio_t chaudio_plugin_transform(chaudio_plugin_t * plugin, audio_t from, int32_
         }
 
         // copy to output
-        for (c = 0; c < plugin->channels && c < into.channels; ++c) {
-            for (j = 0; j < cur_len; ++j) {
-                into.data[c * into.length + i + j] = plugin->out[c * cur_len + j];
+        for (j = 0; j < cur_len; ++j) {
+            for (k = 0; k < plugin->channels && k < from.channels; ++k) {
+                into.data[into.channels * (i + j) + k] = plugin->out[plugin->channels * (i + j) + k];
+
             }
         }
     }

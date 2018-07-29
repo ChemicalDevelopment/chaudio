@@ -46,9 +46,9 @@ audio_t chaudio_resample(audio_t input, int64_t new_sample_rate, audio_t * outpu
         // perfect slicing
         int ratio = input.sample_rate / new_sample_rate;
         int i, j;
-        for (i = 0; i < res.channels; ++i) {
-            for (j = 0; j < res.length; ++j) {
-                res.data[i * res.length + j] = input.data[i * input.length + j * ratio];
+        for (i = 0; i < res.length; ++i) {
+            for (j = 0; j < res.channels; ++j) {
+                res.data[res.channels * i + j] = input.data[res.channels * (i * ratio) + j];
             }
         }
 
@@ -63,17 +63,17 @@ audio_t chaudio_resample(audio_t input, int64_t new_sample_rate, audio_t * outpu
 
 #define LIN_MIX(a, b, p) ((a) * (1.0 - p) + (b) * (p))
 
-        for (i = 0; i < res.channels; ++i) {
-            for (j = 0; j < new_length; ++j) {
-                wanted_sample = ratio * j;
-                s0 = input.data[i * input.length + (int)floor(wanted_sample)];
+        for (i = 0; i < res.length; ++i) {
+            for (j = 0; j < res.channels; ++j) {
+                wanted_sample = ratio * i;
+                s0 = input.data[input.channels * ((int)floor(wanted_sample)) + j];
                 if ((int)floor(wanted_sample) >= input.length - 1) {
                     s1 = 0.0;
                 } else {
-                    s1 = input.data[i * input.length + (int)floor(wanted_sample) + 1];
+                    s1 = input.data[input.channels * ((int)floor(wanted_sample) + 1) + j];
                 }
                 prop = wanted_sample - floor(wanted_sample);
-                res.data[i * res.length + j] = LIN_MIX(s0, s1, prop);
+                res.data[res.channels * i + j] = LIN_MIX(s0, s1, prop);
             }
         }
     }
@@ -102,7 +102,7 @@ audio_t chaudio_mix_to_mono(audio_t input, audio_t * output) {
     for (i = 0; i < input.length; ++i) {
         cur_sum = 0.0;
         for (j = 0; j < input.channels; ++j) {
-            cur_sum += input.data[i + j * input.length];
+            cur_sum += input.data[input.channels * i + j];
         }
         // normalized value so no clipping from mix
         res.data[i] = cur_sum / input.channels;
@@ -159,6 +159,7 @@ audio_t chaudio_gain(audio_t input, double db, audio_t * output) {
     } else {
         res = *output;
         chaudio_audio_realloc_audio(&res, input);
+
     }
 
     double coef = GAIN_COEF(db);
@@ -167,6 +168,7 @@ audio_t chaudio_gain(audio_t input, double db, audio_t * output) {
     for (i = 0; i < input.length * input.channels; ++i) {
         res.data[i] = coef * input.data[i];
     }
+
 
     if (output != NULL) *output = res;
 
@@ -221,23 +223,15 @@ audio_t chaudio_append(audio_t input_A, audio_t input_B, audio_t * output) {
 
     int cc = 0;
 
-    for (i = 0; i < res.channels; ++i) {
-        for (j = 0; j < res.length; ++j) {
-            if (j < input_A.length) {
-                if (i < input_A.channels) {
-                    cc = i;
-                } else {
-                    cc = 0;
-                }
-                res.data[i * res.length + j] = input_A.data[cc * input_A.length + j];
+    for (i = 0; i < new_length; ++i) {
+        for (j = 0; j < new_channels; ++j) {
+            if (i < input_A.length) {
+                if (j < input_A.channels) res.data[new_channels * i + j] = input_A.data[input_A.channels * i + j];
+                else  res.data[new_channels * i + j] = 0.0;
             } else {
-                int cj = j - input_B.length;
-                if (i < input_B.channels) {
-                    cc = i;
-                } else {
-                    cc = 0;
-                }
-                res.data[i * res.length + j] = input_B.data[cc * input_B.length + cj];
+                if (j < input_B.channels) res.data[new_channels * i + j] = input_B.data[input_A.channels * (i - input_A.length) + j];
+                else  res.data[new_channels * i + j] = 0.0;
+                
             }
         }
     }

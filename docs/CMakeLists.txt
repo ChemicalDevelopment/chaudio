@@ -9,8 +9,8 @@ configure_file (
 )
 
 configure_file (
-  "./channelmajor_vs_samplemajor.png"
-  "${PROJECT_BINARY_DIR}/docs/channelmajor_vs_samplemajor.png"
+  "./samplemajor.png"
+  "${PROJECT_BINARY_DIR}/docs/samplemajor.png"
   COPYONLY
 )
 

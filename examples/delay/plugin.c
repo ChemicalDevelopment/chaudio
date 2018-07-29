@@ -20,7 +20,7 @@ typedef struct _DelayData {
     // for storing where we are in `prev_data`
     int64_t cur_buf_idx;
 
-    int64_t prev_data_channel_length;
+    int64_t samples_stored;
 
     // channels * sample_rate * sizeof(double) * 10
     // for maximum of 10 seconds delay
@@ -36,12 +36,12 @@ void * f_init(int32_t channels, int32_t sample_rate, chdict_t * dict) {
     data->channels = channels;
     data->sample_rate = sample_rate;
 
-    data->prev_data_channel_length = data->sample_rate * MAX_DELAY_TIME;
+    data->samples_stored = data->sample_rate * MAX_DELAY_TIME;
 
-    data->prev_data = malloc(sizeof(double) * data->channels * data->prev_data_channel_length);
+    data->prev_data = malloc(sizeof(double) * data->samples_stored * data->channels);
 
     int i;
-    for (i = 0; i < data->channels * data->prev_data_channel_length; ++i) {
+    for (i = 0; i < data->samples_stored * data->channels; ++i) {
         data->prev_data[i] = 0.0;
     }
 
@@ -58,24 +58,25 @@ int32_t f_process(void * _data, double * in, double * out, int32_t N, chdict_t *
 
     double feedback = chdict_get_double(dict, "feedback");
 
-    int c, i;
-    for (c = 0; c < data->channels; ++c) {
-        for (i = 0; i < N; ++i) {
-            int64_t to_idx = data->prev_data_channel_length * c + (data->cur_buf_idx + i) % data->prev_data_channel_length;
-            data->prev_data[to_idx] = in[c * N + i] + feedback * data->prev_data[to_idx];
+    int i, j;
+    for (i = 0; i < N; ++i) {
+        int64_t to_idx = (data->cur_buf_idx + i) % data->samples_stored;
+        for (j = 0; j < data->channels; ++j) {
+            data->prev_data[to_idx] = in[data->channels * i + j] + feedback * data->prev_data[to_idx];
         }
     }
 
     int64_t delay_samples = (int64_t)(delay_time * data->sample_rate);
 
-    for (c = 0; c < data->channels; ++c) {
-        for (i = 0; i < N; ++i) {
-            int64_t from_idx = c * data->prev_data_channel_length + ((i - delay_samples) % data->prev_data_channel_length + data->prev_data_channel_length) % data->prev_data_channel_length;
-            out[c * N + i] = data->prev_data[from_idx];
+    for (i = 0; i < N; ++i) {
+        int64_t from_idx = ((i - delay_samples) % data->samples_stored + data->samples_stored) % data->samples_stored;
+
+        for (j = 0; j < data->channels; ++j) {
+            out[data->channels * i + j] = data->prev_data[from_idx];
         }
     }
 
-    data->cur_buf_idx = (data->cur_buf_idx + N) % data->prev_data_channel_length;
+    data->cur_buf_idx = (data->cur_buf_idx + N) % data->samples_stored;
 
     return 0;
 }

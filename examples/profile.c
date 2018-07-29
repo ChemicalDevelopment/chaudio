@@ -132,6 +132,16 @@ int main(int argc, char ** argv) {
     printf("generation (square) avg: %.2lf ms\n", et * 1000.0);
 
 
+    /* signal generation (noise) */
+    st = chaudio_time();
+    for (i = 0; i < num_trials; ++i) {
+        chaudio_signal_generate(&a[i], CHAUDIO_WAVEFORM_NOISE, 220.0, 0.0);
+    }
+
+    et = (chaudio_time() - st) / num_trials;
+    printf("generation (noise) avg: %.2lf ms\n", et * 1000.0);
+
+
     /* gain (+0db) */
     st = chaudio_time();
     for (i = 0; i < num_trials; ++i) {
