@@ -2,11 +2,14 @@
 #include "chaudio.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 // getopt
 #include <unistd.h>
+#include <getopt.h>
 
 #include <string.h>
+
 
 
 int main(int argc, char ** argv) {

@@ -4,9 +4,14 @@ project (chaudio C)
 set (CHAUDIO_VERSION_MAJOR 0)
 set (CHAUDIO_VERSION_MINOR 1)
 
+# options
+
+option(BUILD_DOCS "Build documentation" OFF)
+
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set (CMAKE_C_FLAGS "-O2 -g -Wall -pedantic -std=c99 ${CMAKE_C_FLAGS}")
+set(CMAKE_C_FLAGS "-O2 -g -Wall -pedantic -std=c99 ${CMAKE_C_FLAGS}")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
 
@@ -38,9 +43,10 @@ endif()
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories("${CMAKE_SOURCE_DIR}/src")
 
-add_subdirectory (src) 
-add_subdirectory (docs) 
-
+add_subdirectory (src)
+if (BUILD_DOCS)
+    add_subdirectory (docs) 
+endif()
 add_subdirectory (examples) 
 
 

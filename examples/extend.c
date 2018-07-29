@@ -8,8 +8,12 @@ this program appends silence to the end of the input
 #include "chaudio.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
+// getopt
 #include <unistd.h>
+#include <getopt.h>
+
 #include <string.h>
 
 

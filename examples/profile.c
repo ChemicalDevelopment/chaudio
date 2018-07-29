@@ -9,9 +9,14 @@ profiles common operations
 
 #include "chaudio.h"
 
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 
+// getopt
+#include <unistd.h>
+#include <getopt.h>
+
+#include <string.h>
 
 /*
 
@@ -169,16 +174,6 @@ int main(int argc, char ** argv) {
 
     et = (chaudio_time() - st) / num_trials;
     printf("gain (-10db) avg: %.2lf ms\n", et * 1000.0);
-
-    /* gain (+10db) */
-    st = chaudio_time();
-    for (i = 0; i < num_trials; ++i) {
-        chaudio_gain(a[i], 10.0, &a[i]);
-    }
-
-    et = (chaudio_time() - st) / num_trials;
-    printf("gain (10db) avg: %.2lf ms\n", et * 1000.0);
-
 
     printf("additional memory used: %lf Mb (anything less than 1Mb is OK)\n", MEM_MB - baseline_mem);
 
