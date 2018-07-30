@@ -50,6 +50,7 @@ audio_t chaudio_plugin_transform(chaudio_plugin_t * plugin, audio_t from, int32_
         into = *output;
         chaudio_audio_realloc(&into, from.length, plugin->channels, from.sample_rate);
     }
+
     
     plugin->in = (double *)realloc(plugin->in, sizeof(double) * bufsize * plugin->channels);
     plugin->out = (double *)realloc(plugin->out, sizeof(double) * bufsize * plugin->channels);
@@ -62,10 +63,11 @@ audio_t chaudio_plugin_transform(chaudio_plugin_t * plugin, audio_t from, int32_
         if (from.length - i < bufsize) cur_len = from.length - i;
         int32_t c, j, k;
 
+
         for (j = 0; j < cur_len; ++j) {
             for (k = 0; k < plugin->channels && k < from.channels; ++k) {
                 plugin->in[plugin->channels * j + k] = from.data[from.channels * (i + j) + k];
-                plugin->in[plugin->channels * j + k] = 0.0;
+                plugin->out[plugin->channels * j + k] = 0.0;
             }
         }
 
@@ -76,11 +78,12 @@ audio_t chaudio_plugin_transform(chaudio_plugin_t * plugin, audio_t from, int32_
 
         // copy to output
         for (j = 0; j < cur_len; ++j) {
-            for (k = 0; k < plugin->channels && k < from.channels; ++k) {
-                into.data[into.channels * (i + j) + k] = plugin->out[plugin->channels * (i + j) + k];
+            for (k = 0; k < into.channels && k < from.channels; ++k) {
+                into.data[into.channels * (i + j) + k] = plugin->out[plugin->channels * j + k];
 
             }
         }
+        
     }
 
     if (output != NULL) *output = into;

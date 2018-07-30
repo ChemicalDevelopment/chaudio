@@ -177,12 +177,13 @@ audio_t chaudio_gain(audio_t input, double db, audio_t * output) {
 
 audio_t chaudio_pad(audio_t input, int64_t added_zeros, audio_t * output) {
     if (output == NULL) {
-        chaudio_copy(input, output);
-        chaudio_audio_realloc(output, input.length + added_zeros, 0, 0);
-    } else {
         audio_t res = chaudio_audio_create_audio(input);
         chaudio_audio_realloc(&res, input.length + added_zeros, 0, 0);
         return res;
+    } else {
+        chaudio_copy(input, output);
+        chaudio_audio_realloc(output, input.length + added_zeros, 0, 0);
+        return *output;
     }
 }
 

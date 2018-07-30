@@ -30,7 +30,7 @@ int main(int argc, char ** argv) {
     int i;
     char c;
 
-    while ((c = getopt (argc, argv, "i:o:d:h")) != (char)-1) {
+    while ((c = getopt (argc, argv, "i:o:s:h")) != (char)-1) {
         if (c == 'h') {
             printf("chaudio write, writing a file to disc\n");
             printf("Usage: write [options...] [input]\n");
@@ -62,14 +62,13 @@ int main(int argc, char ** argv) {
         audio = chaudio_audio_create_wav(input_file);
     }
 
-    audio = chaudio_pad(audio, (int64_t)(silence_dur * audio.sample_rate), NULL);
-
+    audio_t res = chaudio_pad(audio, (int64_t)(silence_dur * audio.sample_rate), NULL);
 
     // output it
     if (output_file == NULL || strcmp(output_file, "-") == 0) {
-        chaudio_audio_output_wav_fp(stdout, audio, CHAUDIO_WAVFMT_16I);
+        chaudio_audio_output_wav_fp(stdout, res, CHAUDIO_WAVFMT_16I);
     } else {
-        chaudio_audio_output_wav(output_file, audio, CHAUDIO_WAVFMT_16I);
+        chaudio_audio_output_wav(output_file, res, CHAUDIO_WAVFMT_16I);
     }
 
 

@@ -55,7 +55,7 @@ int main(int argc, char ** argv) {
             keys = realloc(keys, sizeof(char *) * n_sets);
             vals = realloc(vals, sizeof(double) * n_sets);
             keys[n_sets-1] = malloc(strlen(optarg) + 1);
-            sscanf(optarg, "%[^=]=%lf", keys[i], &vals[i]);
+            sscanf(optarg, "%[^=]=%lf", keys[n_sets - 1], &vals[n_sets - 1]);
         } else {
             printf("ERROR: incorrect argument: -%c\n", optopt);
             return 1;
@@ -71,8 +71,10 @@ int main(int argc, char ** argv) {
         audio = chaudio_audio_create_wav(input_file);
     }
 
+
     // the path (right now) has to be the actual `.so`, or `.dylib`
     chaudio_plugin_t plugin = chaudio_plugin_load(plugin_name);
+
 
     if (plugin.init == NULL) {
         printf("ERROR finding plugin '%s'\n", plugin_name);
@@ -80,7 +82,6 @@ int main(int argc, char ** argv) {
     }
 
     chaudio_plugin_init(&plugin, audio.channels, audio.sample_rate);
-
 
     for (i = 0; i < n_sets; ++i) {
         chdict_set(plugin.dict, keys[i], chdictobj_double(vals[i]));

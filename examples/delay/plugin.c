@@ -53,25 +53,19 @@ void * f_init(int32_t channels, int32_t sample_rate, chdict_t * dict) {
 int32_t f_process(void * _data, double * in, double * out, int32_t N, chdict_t * dict) {
     DelayData * data = (DelayData *)_data;
 
-    double delay_time = chdict_get_double(dict, "delay");
+    double delay_time = chdict_get_double(dict, "delay");    
     if (delay_time > (double)MAX_DELAY_TIME) delay_time = (double)MAX_DELAY_TIME;
-
     double feedback = chdict_get_double(dict, "feedback");
 
-    int i, j;
-    for (i = 0; i < N; ++i) {
-        int64_t to_idx = (data->cur_buf_idx + i) % data->samples_stored;
-        for (j = 0; j < data->channels; ++j) {
-            data->prev_data[to_idx] = in[data->channels * i + j] + feedback * data->prev_data[to_idx];
-        }
-    }
 
     int64_t delay_samples = (int64_t)(delay_time * data->sample_rate);
-
+    int i, j;
     for (i = 0; i < N; ++i) {
-        int64_t from_idx = ((i - delay_samples) % data->samples_stored + data->samples_stored) % data->samples_stored;
+        int64_t to_idx = ((data->cur_buf_idx + i) % data->samples_stored + data->samples_stored) % data->samples_stored;
+        int64_t from_idx = ((data->cur_buf_idx + i - delay_samples) % data->samples_stored + data->samples_stored) % data->samples_stored;
 
         for (j = 0; j < data->channels; ++j) {
+            data->prev_data[to_idx] = in[data->channels * i + j] + feedback * data->prev_data[from_idx];
             out[data->channels * i + j] = data->prev_data[from_idx];
         }
     }
