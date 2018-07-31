@@ -50,6 +50,8 @@ int main(int argc, char ** argv) {
             output_file = optarg;
         } else if (c == 'p') {
             plugin_name = optarg;
+        } else if (c == 'b') {
+            sscanf(optarg, "%d", &bufsize);
         } else if (c == 'D') {
             n_sets++;
             keys = realloc(keys, sizeof(char *) * n_sets);
@@ -84,12 +86,14 @@ int main(int argc, char ** argv) {
     chaudio_plugin_init(&plugin, audio.channels, audio.sample_rate);
 
     for (i = 0; i < n_sets; ++i) {
-        chdict_set(plugin.dict, keys[i], chdictobj_double(vals[i]));
+        plugin.set_double(plugin.plugin_data, keys[i], vals[i]);
     }
 
 
     // transform the result in buffer sizes
-    audio_t res = chaudio_plugin_transform(&plugin, audio, 256, NULL);
+    audio_t res = chaudio_plugin_transform(&plugin, audio, bufsize, NULL);
+
+    chaudio_plugin_free(&plugin);
 
     // output it
     if (output_file == NULL || strcmp(output_file, "-") == 0) {

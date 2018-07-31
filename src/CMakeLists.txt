@@ -1,9 +1,17 @@
 
 
-add_library(chaudio STATIC dict.c util.c    chaudio.c plugin.c signal.c    chaudio.h)
+set (ext_files "")
+set (ext_libs "")
 
+if (PORTAUDIO_FOUND)
+    add_subdirectory(optional/portaudio)
+    set(ext_files ${ext_files} optional/portaudio/realtime_process.c)
+    set(ext_libs ${ext_libs} ${PORTAUDIO_LIBRARIES})
+endif()
 
-target_link_libraries(chaudio m ${CMAKE_DL_LIBS})
+add_library(chaudio STATIC util.c    chaudio.c signal.c plugin.c pipeline.c   ${ext_files}    chaudio.h)
+
+target_link_libraries(chaudio m ${ext_libs} ${CMAKE_DL_LIBS})
 target_compile_options(chaudio PUBLIC -std=c99 -fpermissive -w -Wall )
 
 

@@ -8,13 +8,11 @@
 #include <dlfcn.h>
 
 
-chaudio_plugin_t chaudio_plugin_create(char * name, chaudio_PluginInit _init, chaudio_PluginProcess _process, chaudio_PluginFree _free) {
+chaudio_plugin_t chaudio_plugin_create(char * name, chaudio_PluginInit _init, chaudio_PluginProcess _process, chaudio_PluginSetDouble _set_double, chaudio_PluginFree _free) {
     chaudio_plugin_t plugin;
 
     plugin.name = malloc(strlen(name) + 1);
     strcpy(plugin.name, name);
-
-    plugin.dict = NULL;
 
     plugin.plugin_data = NULL;
 
@@ -23,20 +21,17 @@ chaudio_plugin_t chaudio_plugin_create(char * name, chaudio_PluginInit _init, ch
 
     plugin.init = _init;
     plugin.process = _process;
+    plugin.set_double = _set_double;
     plugin.free = _free;
 
     return plugin;
 }
 
 void chaudio_plugin_init(chaudio_plugin_t * plugin, uint32_t channels, uint32_t sample_rate) {
-    plugin->dict = (chdict_t *)malloc(sizeof(chdict_t));
-
-    chdict_init(plugin->dict);
-
     plugin->channels = channels;
     plugin->sample_rate = sample_rate;
 
-    if (plugin->init != NULL) plugin->plugin_data = plugin->init(channels, sample_rate, plugin->dict);
+    if (plugin->init != NULL) plugin->plugin_data = plugin->init(channels, sample_rate);
 
 }
 
@@ -73,8 +68,9 @@ audio_t chaudio_plugin_transform(chaudio_plugin_t * plugin, audio_t from, int32_
 
         // now actually process it
         if (plugin->process != NULL) {
-            plugin->process(plugin->plugin_data, plugin->in, plugin->out, cur_len, plugin->dict);
+            plugin->process(plugin->plugin_data, plugin->in, plugin->out, cur_len);
         }
+
 
         // copy to output
         for (j = 0; j < cur_len; ++j) {
@@ -120,8 +116,8 @@ chaudio_plugin_t chaudio_plugin_load(char * file_name) {
     }
 
     chaudioplugin_init_t init_val = (chaudioplugin_init_t) { 
-        .chdict_get_double = chdict_get_double,
-        .chaudio_plugin_create = chaudio_plugin_create
+        .chaudio_plugin_create = chaudio_plugin_create,
+        .chaudio_time = chaudio_time
         
     };
 

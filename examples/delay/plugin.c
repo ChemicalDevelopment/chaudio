@@ -10,6 +10,7 @@ Simple delay line plugin with feedback to illustrate how to use buffers
 
 #include "chaudioplugin.h"
 
+
 // seconds
 #define MAX_DELAY_TIME 10
 
@@ -26,10 +27,13 @@ typedef struct _DelayData {
     // for maximum of 10 seconds delay
     double * prev_data;
 
+    // parameters
+    double dry, delay, feedback;
+
 } DelayData;
 
 
-void * f_init(int32_t channels, int32_t sample_rate, chdict_t * dict) {
+void * f_init(int32_t channels, int32_t sample_rate) {
 
     DelayData * data = malloc(sizeof(DelayData));
 
@@ -47,15 +51,39 @@ void * f_init(int32_t channels, int32_t sample_rate, chdict_t * dict) {
 
     data->cur_buf_idx = 0;
 
+    // defaults
+    data->dry = 1.0;
+    data->delay = 0.0;
+    data->feedback = 0.0;
+    
+
     return (void *)data;
 }
 
-int32_t f_process(void * _data, double * in, double * out, int32_t N, chdict_t * dict) {
+int32_t f_set_double(void * _data, char * key, double val) {
+    DelayData * data = (DelayData *)_data;
+    if (streq(key, "dry")) {
+        data->dry = val;
+    } else if (streq(key, "delay")) {
+        data->delay = val;
+    } else if (streq(key, "feedback")) {
+        data->feedback = val;
+    } else {
+        // error code, but not very bad
+        return 1;
+    }
+    return 0;
+}
+
+
+int32_t f_process(void * _data, double * in, double * out, int32_t N) {
     DelayData * data = (DelayData *)_data;
 
-    double delay_time = chdict_get_double(dict, "delay");    
+
+    double dry = data->dry;
+    double delay_time = data->delay;
     if (delay_time > (double)MAX_DELAY_TIME) delay_time = (double)MAX_DELAY_TIME;
-    double feedback = chdict_get_double(dict, "feedback");
+    double feedback = data->feedback;
 
 
     int64_t delay_samples = (int64_t)(delay_time * data->sample_rate);
@@ -66,7 +94,7 @@ int32_t f_process(void * _data, double * in, double * out, int32_t N, chdict_t *
 
         for (j = 0; j < data->channels; ++j) {
             data->prev_data[to_idx] = in[data->channels * i + j] + feedback * data->prev_data[from_idx];
-            out[data->channels * i + j] = data->prev_data[from_idx];
+            out[data->channels * i + j] = dry * in[data->channels * i + j] + data->prev_data[from_idx];
         }
     }
 
@@ -81,6 +109,6 @@ int32_t f_free(void * _data) {
 }
 
 chaudio_plugin_t register_plugin() {
-    return chaudio_plugin_create(PLUGIN_NAME, f_init, f_process, f_free);
+    return chaudio_plugin_create(PLUGIN_NAME, f_init, f_process, f_set_double, f_free);
 }
 

@@ -21,6 +21,8 @@ chaudio plugin header file utility
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
 #include <math.h>
 
 chaudioplugin_init_t _chaudioplugin_init_vals;
@@ -35,10 +37,14 @@ chaudio_plugin_t chaudioplugin_init(chaudioplugin_init_t __v) {
 }
 
 
+/* utility macros/functions */
+
+#define streq(a, b) (strcmp((a), (b)) == 0)
 
 /*  */
-#define chdict_get_double (_chaudioplugin_init_vals.chdict_get_double)
 #define chaudio_plugin_create (_chaudioplugin_init_vals.chaudio_plugin_create)
+#define chaudio_time (_chaudioplugin_init_vals.chaudio_time)
+
 
 #endif
 

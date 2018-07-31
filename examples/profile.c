@@ -84,30 +84,59 @@ size_t memory_used ()
 
 #define MEM_MB (((double)memory_used()) / (1024.0 * 1024.0))
 
+
+
+#define TRIAL_RESULTS(t, name) printf("%8.2lf ms : %s\n", 1000.0 * (t), name);
+#define TRIAL_RESULTS_FMT(t, name, format, ...) printf("%8.2lf ms : %s\n" format, 1000.0 * (t), name, __VA_ARGS__);
+
+
+
 int main(int argc, char ** argv) {
 
     chaudio_init();
-    printf("%s\n", chaudio_get_build_info());
+
+    int32_t i;
 
     // how many trials of each test are we going to do?
     int32_t num_trials = 10;
     // how many samples all trials are of (do 10 seconds)
-    int64_t N_samples = CHAUDIO_DEFAULT_SAMPLE_RATE * 10;
-    int32_t i;
+    int64_t audio_size = CHAUDIO_DEFAULT_SAMPLE_RATE * 10;
+
+    char c;
+    while ((c = getopt (argc, argv, "T:s:h")) != (char)-1) {
+        if (c == 'h') {
+            printf("Profiling and benchmarking\n");
+            printf("Usage: ch_profile [options...]\n");
+            printf("\n");
+            printf("  -T [N]                      set number of trials\n");
+            printf("  -s [N]                      set size of audio buffers\n");
+            printf("  -h                          show this help message\n");
+            printf("\n");
+            return 0;
+        } else if (c == 'T') {
+            sscanf(optarg, "%d", &num_trials);
+        } else if (c == 's') {
+            sscanf(optarg, "%lld", &audio_size);
+        } else {
+            printf("ERROR: incorrect argument: -%c\n", optopt);
+            return 1;
+        }
+    }
+
+    printf("%s\n", chaudio_get_build_info());
 
     // timing variables useda
     double st, et;
 
     // audio buffers used , 1 for each trial
-    audio_t *a = malloc(sizeof(audio_t) * num_trials), *b = malloc(sizeof(audio_t) * num_trials), *c = malloc(sizeof(audio_t) * num_trials);
+    audio_t *a = malloc(sizeof(audio_t) * num_trials), *b = malloc(sizeof(audio_t) * num_trials);
 
-
-    printf("beginning trials (doing %d of each) with %d samples (%lf seconds of data)\n", num_trials, N_samples, (double)N_samples/CHAUDIO_DEFAULT_SAMPLE_RATE);
+    printf("beginning trials (doing %d of each) with %d samples (%lf seconds of data)\n", num_trials, audio_size, (double)audio_size/CHAUDIO_DEFAULT_SAMPLE_RATE);
 
     /* creation */
     st = chaudio_time();
     for (i = 0; i < num_trials; ++i) {
-        a[i] = chaudio_audio_create(N_samples, 1, CHAUDIO_DEFAULT_SAMPLE_RATE);
+        a[i] = chaudio_audio_create(audio_size, 1, CHAUDIO_DEFAULT_SAMPLE_RATE);
     }
     et = (chaudio_time() - st) / num_trials;
 
@@ -115,7 +144,7 @@ int main(int argc, char ** argv) {
 
     printf("current memory being used %lf Mb\n", baseline_mem);
 
-    printf("creation avg: %.2lf ms\n", et * 1000.0);
+    TRIAL_RESULTS(et, "creation avg");
 
     /* signal generation (sin) */
     st = chaudio_time();
@@ -124,7 +153,7 @@ int main(int argc, char ** argv) {
     }
 
     et = (chaudio_time() - st) / num_trials;
-    printf("generation (sin) avg: %.2lf ms\n", et * 1000.0);
+    TRIAL_RESULTS(et, "generation[sin]");
 
 
     /* signal generation (square) */
@@ -134,7 +163,7 @@ int main(int argc, char ** argv) {
     }
 
     et = (chaudio_time() - st) / num_trials;
-    printf("generation (square) avg: %.2lf ms\n", et * 1000.0);
+    TRIAL_RESULTS(et, "generation[square]");
 
 
     /* signal generation (noise) */
@@ -144,7 +173,7 @@ int main(int argc, char ** argv) {
     }
 
     et = (chaudio_time() - st) / num_trials;
-    printf("generation (noise) avg: %.2lf ms\n", et * 1000.0);
+    TRIAL_RESULTS(et, "generation[noise]");
 
 
     /* gain (+0db) */
@@ -154,7 +183,7 @@ int main(int argc, char ** argv) {
     }
 
     et = (chaudio_time() - st) / num_trials;
-    printf("gain (+0db) avg: %.2lf ms\n", et * 1000.0);
+    TRIAL_RESULTS(et, "gain[0db]");
 
     /* gain (+10db) */
     st = chaudio_time();
@@ -163,19 +192,12 @@ int main(int argc, char ** argv) {
     }
 
     et = (chaudio_time() - st) / num_trials;
-    printf("gain (+10db) avg: %.2lf ms\n", et * 1000.0);
+    TRIAL_RESULTS(et, "gain[10db]");
 
 
-    /* gain (-10db) */
-    st = chaudio_time();
-    for (i = 0; i < num_trials; ++i) {
-        chaudio_gain(a[i], -10.0, &a[i]);
+    if (MEM_MB - baseline_mem > 0.1) {
+        printf("additional memory used: %lf Mb (we may have a problem)\n", MEM_MB - baseline_mem);
     }
-
-    et = (chaudio_time() - st) / num_trials;
-    printf("gain (-10db) avg: %.2lf ms\n", et * 1000.0);
-
-    printf("additional memory used: %lf Mb (anything less than 1Mb is OK)\n", MEM_MB - baseline_mem);
 
 
     return 0;

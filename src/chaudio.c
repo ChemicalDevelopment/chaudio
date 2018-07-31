@@ -89,6 +89,10 @@ char * chaudio_get_build_info() {
         sprintf(_build_res, "%s (built with SDL2)", _build_res);
         #endif
 
+        #ifdef HAVE_JACK
+        sprintf(_build_res, "%s (built with JACK)", _build_res);
+        #endif
+
     }
 
     return _build_res;

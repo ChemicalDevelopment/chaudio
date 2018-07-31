@@ -7,6 +7,7 @@ set (CHAUDIO_VERSION_MINOR 1)
 # options
 
 option(BUILD_DOCS "Build documentation" OFF)
+option(WITH_PORTAUDIO "Require portaudio for building chaudio" OFF)
 
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -33,12 +34,20 @@ endif()
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${chaudio_SOURCE_DIR}/cmake")
 
 find_package(SDL2 REQUIRED)
+find_package(PortAudio REQUIRED)
+
 
 if (SDL2_FOUND)
     message(STATUS "Building with SDL2")
     add_definitions(-DHAVE_SDL2)
 endif()
 
+if (PORTAUDIO_FOUND)
+    message(STATUS "Building with PortAudio")
+    add_definitions(-DHAVE_PORTAUDIO)
+elseif (WITH_PORTAUDIO)
+    message(FATAL_ERROR "Could not find port audio")
+endif()
 
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories("${CMAKE_SOURCE_DIR}/src")

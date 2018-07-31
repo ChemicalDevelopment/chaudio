@@ -207,42 +207,11 @@ typedef struct _chparam_s {
 } chparam_t;
 
 
-// for storing data in dictionaries
-typedef struct _chdictobj_s {
-
-    // CHAUDIO_OBJTYPE_* macros
-    int32_t type;
-
-    union {
-
-        int ival;
-        double dval;
-        char * sval;
-        audio_t aval;
-        void * pval;
-
-    } val;
-
-    // only useful if it's a double
-    chparam_t param_info;
-
-} chdictobj_t;
-
-typedef struct _chdict_s {
-    
-    int len;
-    char ** keys;
-    chdictobj_t * vals;
-
-} chdict_t;
-
-
-
 // should return a pointer to some structure type that is used internally for the project.
 // should not return NULL (unless a failure has occured)
 // dict may be NULL!
 // if not, cast to chdict_t *
-typedef void * (*chaudio_PluginInit)(int32_t channels, int32_t sample_rate, chdict_t * dict);
+typedef void * (*chaudio_PluginInit)(int32_t channels, int32_t sample_rate);
 
 // plugin_data is the same pointer created by the ch_PluginInit function
 // returns status code (0 = sucess)
@@ -251,36 +220,47 @@ typedef void * (*chaudio_PluginInit)(int32_t channels, int32_t sample_rate, chdi
 // there are N samples for each channel
 // dictionary may be NULL!
 // if not, cast to chdict_t *
-typedef int32_t (*chaudio_PluginProcess)(void * plugin_data, double * in, double * out, int32_t N, chdict_t * dict);
+typedef int32_t (*chaudio_PluginProcess)(void * plugin_data, double * in, double * out, int32_t N);
+
+// sets a parameter as a double
+typedef int32_t (*chaudio_PluginSetDouble)(void * plugin_data, char * key, double val);
 
 // just the de-initializer
 typedef int32_t (*chaudio_PluginFree)(void * plugin_data);
 
-// most of the time, other programs will want
+/* chaudio_plugin_t - a plugin structure. Has input and output capabilities, useful for real time audio processing */
 typedef struct _chaudio_plugin_s {
 
     char * name;
 
     chaudio_PluginInit init;
     chaudio_PluginProcess process;
+    chaudio_PluginSetDouble set_double;
     chaudio_PluginFree free;
 
     void * plugin_data;
 
     uint32_t channels, sample_rate;
 
-    chdict_t * dict;
-
     // in/out variables
     double * in, * out;
 
 } chaudio_plugin_t;
 
+/* chaudio_pipeline_t - multiple plugins chained together */
+typedef struct _chaudio_pipeline_s {
+
+    int plugins_len;
+    chaudio_plugin_t * plugins;
+
+} chaudio_pipeline_t;
+
 
 typedef struct _chaudioplugin_init_s {
 
-    double (*chdict_get_double)(chdict_t * dict, char * key);
-    chaudio_plugin_t (*chaudio_plugin_create)(char * name, chaudio_PluginInit _init, chaudio_PluginProcess _process, chaudio_PluginFree _free);
+    chaudio_plugin_t (*chaudio_plugin_create)(char * name, chaudio_PluginInit _init, chaudio_PluginProcess _process, chaudio_PluginSetDouble _set_double, chaudio_PluginFree _free);
+
+    double (*chaudio_time)();
 
 } chaudioplugin_init_t;
 

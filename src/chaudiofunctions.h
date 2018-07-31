@@ -169,7 +169,7 @@ plugin interface
 */
 
 // create a plugin, essentially an initialization routine
-chaudio_plugin_t chaudio_plugin_create(char * name, chaudio_PluginInit _init, chaudio_PluginProcess _process, chaudio_PluginFree _free);
+chaudio_plugin_t chaudio_plugin_create(char * name, chaudio_PluginInit _init, chaudio_PluginProcess _process, chaudio_PluginSetDouble _set_double, chaudio_PluginFree _free);
 
 // this calls the supplied .init method passed in, allows for the plugin to initialize data and store channels/sample_rate
 void chaudio_plugin_init(chaudio_plugin_t * plugin, uint32_t channels, uint32_t sample_rate);
@@ -184,42 +184,27 @@ int32_t chaudio_plugin_free(chaudio_plugin_t * plugin);
 chaudio_plugin_t chaudio_plugin_load(char * file_name);
 
 
-/*
+// pipeline extension
 
-chaudio's internal dictionary functionality
-
-*/
+chaudio_pipeline_t chaudio_pipeline_create();
 
 
-/* object creation */
-chdictobj_t chdictobj_double(double val);
-// this gives additional info about the parameter. For `scale`, see CHAUDIO_SCALE_* macros
-chdictobj_t chdictobj_double_info(double val, double minimum, double maximum, int32_t scale);
-chdictobj_t chdictobj_int(int val);
-chdictobj_t chdictobj_string(char * val);
-chdictobj_t chdictobj_audio(audio_t val);
-chdictobj_t chdictobj_any(void * val);
+void chaudio_pipeline_add(chaudio_pipeline_t * pipeline, chaudio_plugin_t plugin);
 
-// initialize the dictionary
-void chdict_init(chdict_t * dict);
 
-// free all mem created for it
-void chdictobj_free(chdictobj_t * dict);
+// works like iterated on chaudio_plugin_transform
+audio_t chaudio_pipeline_transform(chaudio_pipeline_t * pipeline, audio_t from, int32_t bufsize, audio_t * output);
 
-// set the value, creating a new entry if not found, else replace the existing value
-void chdict_set(chdict_t * dict, char * key, chdictobj_t val);
+// run without recording it
+void chaudio_pipeline_runforever(chaudio_pipeline_t * pipeline, int32_t bufsize);
 
-// set a void* for any purpose. But no management is done on these
-void chdict_set_any(chdict_t * dict, char * key, void * val);
 
-// returns the object indexed by `key`, or it will return CHAUDIO_OBJTYPE_NOTFOUND as the .type if it was invalid
-chdictobj_t chdict_get(chdict_t * dict, char * key);
+#ifdef HAVE_PORTAUDIO
 
-// special method, returns 0.0 if not found
-double chdict_get_double(chdict_t * dict, char * key);
+// else give an error or something
+void chaudio_portaudio_realtime_process(chaudio_pipeline_t * pipeline, int32_t bufsize);
 
-// special method, returns NULL if not found
-char * chdict_get_string(chdict_t * dict, char * key);
+#endif
 
 
 
