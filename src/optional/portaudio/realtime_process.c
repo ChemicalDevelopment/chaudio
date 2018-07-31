@@ -37,6 +37,10 @@ typedef struct pa_data_t {
 } pa_data_t;
 
 
+void _pa_streamfinished(void *userData) {
+    printf("stream finished!\n");
+}
+
 int _pa_callback(
     const float * in, float * out,
     unsigned long N,
@@ -74,13 +78,12 @@ int _pa_callback(
 
     double et = chaudio_time();
 
-   // printf("%lf ms\n", 1000.0 * (et - st));
-
-
     // output to float
     for (i = 0; i < N * data->channels; ++i) {
         out[i] = (float) data->out[i];
     }
+
+    return paContinue;
 }
 
 void chaudio_portaudio_realtime_process(chaudio_pipeline_t * pipeline, int32_t bufsize) {
@@ -98,25 +101,23 @@ void chaudio_portaudio_realtime_process(chaudio_pipeline_t * pipeline, int32_t b
     // default only for now
     if ((input_params.device = Pa_GetDefaultInputDevice()) == paNoDevice) {
         printf("portaudio error: couldn't find default input device\n");
-        return NULL;
     }
 
     // set params
     input_params.channelCount = channels;
     input_params.sampleFormat = paFloat32; /* 32 bit floating point output */
-    input_params.suggestedLatency = Pa_GetDeviceInfo(input_params.device)->defaultHighInputLatency;
+    input_params.suggestedLatency = Pa_GetDeviceInfo(input_params.device)->defaultLowInputLatency;
     input_params.hostApiSpecificStreamInfo = NULL; 
 
     // default only for now
     if ((output_params.device = Pa_GetDefaultOutputDevice()) == paNoDevice) {
         printf("portaudio error: couldn't find default output device\n");
-        return NULL;
     }
 
     // set params
     output_params.channelCount = channels;
     output_params.sampleFormat = paFloat32; /* 32 bit floating point output */
-    output_params.suggestedLatency = Pa_GetDeviceInfo(output_params.device)->defaultHighOutputLatency;
+    output_params.suggestedLatency = Pa_GetDeviceInfo(output_params.device)->defaultLowOutputLatency;
     output_params.hostApiSpecificStreamInfo = NULL; 
 
 
@@ -134,16 +135,20 @@ void chaudio_portaudio_realtime_process(chaudio_pipeline_t * pipeline, int32_t b
         &output_params,
         44100,
         bufsize, // we use output stuff
-        paClipOff,      /* we won't output out of range samples so don't bother clipping them */
+        paClipOff, /* we won't output out of range samples so don't bother clipping them */
         _pa_callback,
         &pa_data
     ), {
         printf("portaudio: Failed to open stream! Input probably doesn't exist!\n");
-        return NULL;
     })
 
-    
+
+    IFERR(Pa_SetStreamFinishedCallback(stream, &_pa_streamfinished), {
+        printf("portaudio: Failed to set stream finish callback\n");
+    })
+
     // start the stream
+
     IFERR(Pa_StartStream(stream), {
         printf("portaudio: Failed to start stream!\n");
     });
