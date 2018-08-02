@@ -27,9 +27,23 @@ int32_t chaudio_init();
 // return the time since the epoch if `chaudio_init()` has not been called, otherwise, the amount of elapsed time since `chaudio_init()` was called.
 double chaudio_time();
 
+// return the dl_init values used for initializing generators and plugins
+chaudio_dl_init_t chaudio_dl_init();
+
+
 // returns info about when/what chaudio was built, as a string. 
 // Do not free the result
 char * chaudio_get_build_info();
+
+
+/*
+
+non-audio_t utilities (for general usage)
+
+*/
+
+// reads wave samples into interlaced buffer
+int32_t chaudio_read_wav_samples(char * wav_file, double ** outputs, int64_t * length, int32_t * channels, int32_t * sample_rate);
 
 /*
 
@@ -168,11 +182,17 @@ plugin interface
 
 */
 
+// this is used by generators, plugins, and outputs
+chaudio_paraminterface_t chaudio_paraminterface_create(chaudio_SetDouble set_double, chaudio_SetInt set_int, chaudio_SetString set_string, chaudio_SetAudio set_audio);
+
+
 // create a plugin, essentially an initialization routine
-chaudio_plugin_t chaudio_plugin_create(char * name, chaudio_PluginInit _init, chaudio_PluginProcess _process, chaudio_PluginSetDouble _set_double, chaudio_PluginFree _free);
+chaudio_plugin_t chaudio_plugin_create(char * name, chaudio_PluginInit _init, chaudio_PluginProcess _process, chaudio_PluginFree _free, chaudio_paraminterface_t params);
+
+chaudio_plugin_t chaudio_plugin_create_plugin(chaudio_plugin_t plg);
 
 // this calls the supplied .init method passed in, allows for the plugin to initialize data and store channels/sample_rate
-void chaudio_plugin_init(chaudio_plugin_t * plugin, uint32_t channels, uint32_t sample_rate);
+void chaudio_plugin_init(chaudio_plugin_t * plugin, int32_t channels, int32_t sample_rate);
 
 // computes a new buffer of transformed audio. Stores into `output` if it isn't NULL, otherwise returns a newly allocated result (which you should free). Call this function with small chunks in a loop to process a stream in real time
 audio_t chaudio_plugin_transform(chaudio_plugin_t * plugin, audio_t from, int32_t bufsize, audio_t * output);
@@ -184,9 +204,37 @@ int32_t chaudio_plugin_free(chaudio_plugin_t * plugin);
 chaudio_plugin_t chaudio_plugin_load(char * file_name);
 
 
+// generator api
+
+chaudio_generator_t chaudio_generator_create(char * name, chaudio_GeneratorInit _init, chaudio_GeneratorGenerate _generate, chaudio_GeneratorFree _free, chaudio_paraminterface_t params);
+
+int32_t chaudio_generator_init(chaudio_generator_t * gen, int32_t channels, int32_t sample_rate);
+
+// generates and stores into gen->out
+int32_t chaudio_generator_generate(chaudio_generator_t * gen, int32_t bufsize);
+
+int32_t chaudio_generator_free(chaudio_generator_t * gen);
+
+// dynamic loading
+chaudio_generator_t chaudio_generator_load(char * file_name);
+
+
+
+chaudio_output_t chaudio_output_create(char * name, chaudio_OutputInit _init, chaudio_OutputDump _dump, chaudio_OutputFree _free, chaudio_paraminterface_t params);
+
+int32_t chaudio_output_init(chaudio_output_t * output, int32_t channels, int32_t sample_rate);
+int32_t chaudio_output_dump(chaudio_output_t * output, double * in, int32_t N);
+
+int32_t chaudio_output_free(chaudio_output_t * output);
+
+chaudio_output_t chaudio_output_load(char * file_name);
+
+
 // pipeline extension
 
-chaudio_pipeline_t chaudio_pipeline_create();
+chaudio_pipeline_t chaudio_pipeline_create(int32_t channels, int32_t sample_rate);
+
+void chaudio_pipeline_init(chaudio_pipeline_t * pipeline);
 
 
 void chaudio_pipeline_add(chaudio_pipeline_t * pipeline, chaudio_plugin_t plugin);
@@ -195,8 +243,10 @@ void chaudio_pipeline_add(chaudio_pipeline_t * pipeline, chaudio_plugin_t plugin
 // works like iterated on chaudio_plugin_transform
 audio_t chaudio_pipeline_transform(chaudio_pipeline_t * pipeline, audio_t from, int32_t bufsize, audio_t * output);
 
-// run without recording it
-void chaudio_pipeline_runforever(chaudio_pipeline_t * pipeline, int32_t bufsize);
+// run indefinetely (if stop_func == NULL), or until stop_func() == true
+void chaudio_pipeline_runstream(chaudio_pipeline_t * pipeline, int32_t bufsize, double audio_length, chaudio_IsFinished stop_func);
+
+void chaudio_pipeline_free(chaudio_pipeline_t * pipeline);
 
 
 #ifdef HAVE_PORTAUDIO

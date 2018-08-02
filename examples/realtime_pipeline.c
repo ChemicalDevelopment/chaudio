@@ -32,14 +32,17 @@ int main(int argc, char ** argv) {
     double cval = 0.0; 
     
 
-    chaudio_pipeline_t pipeline = chaudio_pipeline_create();
+    chaudio_pipeline_t pipeline = chaudio_pipeline_create(1, 44100);
 
-    while ((c = getopt (argc, argv, "b:p:D:h")) != (char)-1) {
+    chaudio_generator_t gen;
+
+    while ((c = getopt (argc, argv, "b:i:p:D:h")) != (char)-1) {
         if (c == 'h') {
             printf("Realtime audio processing\n");
             printf("Usage: ch_realtime_pipeline [options...]\n");
             printf("\n");
             printf("  -b [N]                      processing buffer size\n");
+            printf("  -i [gen.so]                 generator to use for input\n");
             printf("  -p [plg.so]                 plugin library file\n");
             printf("  -D [k=v]                    set a value for a plugin\n");
             printf("  -h                          show this help message\n");
@@ -48,13 +51,24 @@ int main(int argc, char ** argv) {
             return 0;
         } else if (c == 'b') {
             sscanf(optarg, "%d", &bufsize);
+        } else if (c == 'i') {
+            gen = chaudio_generator_load(optarg);
+            if (!CHAUDIO_GENERATOR_ISVALID(gen)) {
+                printf("generator is invalid: '%s'\n", optarg);
+                return -1;
+            }
+            pipeline.generator = &gen;
         } else if (c == 'p') {
             chaudio_plugin_t cplug = chaudio_plugin_load(optarg);
-            chaudio_plugin_init(&cplug, 1, 44100);
+            if (!CHAUDIO_PLUGIN_ISVALID(cplug)) {
+                printf("plugin is invalid: '%s'\n", optarg);
+                return -1;
+            }
             chaudio_pipeline_add(&pipeline, cplug);
         } else if (c == 'D') {
             sscanf(optarg, "%[^=]=%lf", ckey, &cval);
-            pipeline.plugins[pipeline.plugins_len-1].set_double(pipeline.plugins[pipeline.plugins_len-1].plugin_data, ckey, cval);
+            chaudio_plugin_t plg = pipeline.plugins[pipeline.plugins_len-1];
+            plg.params.set_double(plg.plugin_data, ckey, cval);
         } else {
             printf("ERROR: incorrect argument: -%c\n", optopt);
             return 1;

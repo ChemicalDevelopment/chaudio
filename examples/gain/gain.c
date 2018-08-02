@@ -37,11 +37,24 @@ int32_t f_set_double(void * _data, char * key, double val) {
     GainData * data = (GainData *)_data;
     if (streq(key, "gain")) {
         data->gain = val;
-        return 0;
-    } else {
-        return 1;
     }
+
+    return CHAUDIO_CONTINUE;
 }
+
+int32_t f_set_int(void * _data, char * key, int32_t val) {
+    return CHAUDIO_CONTINUE;
+}
+
+int32_t f_set_string(void * _data, char * key, char * val) {
+    return CHAUDIO_CONTINUE;
+}
+
+int32_t f_set_audio(void * _data, char * key, audio_t val) {
+    return CHAUDIO_CONTINUE;
+}
+
+
 
 int32_t f_process(void * _data, double * in, double * out, int32_t N) {
 
@@ -65,6 +78,6 @@ int32_t f_free(void * _data) {
 }
 
 chaudio_plugin_t register_plugin() {
-    return chaudio_plugin_create(PLUGIN_NAME, f_init, f_process, f_set_double, f_free);
+    return chaudio_plugin_create(PLUGIN_NAME, f_init, f_process, f_free, chaudio_paraminterface_create(f_set_double, f_set_int, f_set_string, f_set_audio));
 }
 

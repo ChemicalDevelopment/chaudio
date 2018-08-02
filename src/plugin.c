@@ -8,7 +8,8 @@
 #include <dlfcn.h>
 
 
-chaudio_plugin_t chaudio_plugin_create(char * name, chaudio_PluginInit _init, chaudio_PluginProcess _process, chaudio_PluginSetDouble _set_double, chaudio_PluginFree _free) {
+
+chaudio_plugin_t chaudio_plugin_create(char * name, chaudio_PluginInit _init, chaudio_PluginProcess _process, chaudio_PluginFree _free, chaudio_paraminterface_t params) {
     chaudio_plugin_t plugin;
 
     plugin.name = malloc(strlen(name) + 1);
@@ -21,13 +22,34 @@ chaudio_plugin_t chaudio_plugin_create(char * name, chaudio_PluginInit _init, ch
 
     plugin.init = _init;
     plugin.process = _process;
-    plugin.set_double = _set_double;
     plugin.free = _free;
+
+    plugin.params = params;
 
     return plugin;
 }
 
-void chaudio_plugin_init(chaudio_plugin_t * plugin, uint32_t channels, uint32_t sample_rate) {
+
+chaudio_plugin_t chaudio_plugin_create_plugin(chaudio_plugin_t plg) {
+    chaudio_plugin_t r;
+    r.name = malloc(strlen(plg.name) + 1);
+    strcpy(r.name, plg.name);
+
+    r.init = plg.init;
+    r.process = plg.process;
+    r.free = plg.free;
+
+    r.params = plg.params;
+
+    // reset some stuff
+    r.plugin_data = NULL;
+    r.in = NULL;
+    r.out = NULL;
+
+    return r;
+}
+
+void chaudio_plugin_init(chaudio_plugin_t * plugin, int32_t channels, int32_t sample_rate) {
     plugin->channels = channels;
     plugin->sample_rate = sample_rate;
 
@@ -100,29 +122,75 @@ int32_t chaudio_plugin_free(chaudio_plugin_t * plugin) {
 
 /* example plugins */
 
-chaudio_plugin_t chaudio_plugin_load(char * file_name) {
+
+chaudio_plugin_t _plugin_load(char * file_name) {
     void * plugin_handle = dlopen(file_name, RTLD_NOW);
+
     if (plugin_handle == NULL) {
-        printf("error could not open file '%s'\n", file_name);
-        return CHAUDIO_PLUGIN_NULL;
+        // printf("chaudio: could not open plugin '%s': %s\n", file_name, dlerror());
+        return (chaudio_plugin_t) { .name = NULL };
     }
 
-    chaudio_plugin_t (*plugin_init_func)(chaudioplugin_init_t) = dlsym(plugin_handle, "chaudioplugin_init");
+    chaudio_plugin_t (*export_init_func)(chaudio_dl_init_t) = dlsym(plugin_handle, "chaudioplugin_export");
 
     char * result = dlerror();
-    if (plugin_init_func == NULL || result != NULL) {
-        printf("ERROR: couldn't find 'chaudioplugin_init' method for file '%s', (err='%s')\n", file_name, result);
-        return CHAUDIO_PLUGIN_NULL;
+    if (export_init_func == NULL || result != NULL) {
+        //printf("chaudio: could not find plugin export (err='%s'), '%s' may be a generator or output\n", result, file_name);
+        return (chaudio_plugin_t) { .name = NULL };
     }
 
-    chaudioplugin_init_t init_val = (chaudioplugin_init_t) { 
-        .chaudio_plugin_create = chaudio_plugin_create,
-        .chaudio_time = chaudio_time
+    return export_init_func(chaudio_dl_init());
+}
+
+chaudio_plugin_t chaudio_plugin_load(char * file_name) {
+
+
+    chaudio_plugin_t r = _plugin_load(file_name);
+
+    if (CHAUDIO_PLUGIN_ISVALID(r)) {
+        return r;
+    } else if (getenv("CHAUDIO_PATH") != NULL) {
+        char * chaudio_path = malloc(strlen(getenv("CHAUDIO_PATH")) + 1);
+        strcpy(chaudio_path, getenv("CHAUDIO_PATH"));
+        char * cur_check = malloc(strlen(chaudio_path) + strlen(file_name) + 4096 + 1);
+
+        int i;
+        char * cur_dir = strtok(chaudio_path, ":");
         
-    };
+        while (cur_dir != NULL) {
+            // different library naming conventions
+            #ifdef __linux__
+            sprintf(cur_check, "%s/plugins/lib%s.so", cur_dir, file_name);
+            #endif
 
-    return plugin_init_func(init_val);
+            #ifdef __APPLE__
+            sprintf(cur_check, "%s/plugins/lib%s.dylib", cur_dir, file_name);
+            #endif
+            
+            /*
 
+            TODO: consider windows formatting for libraries
+
+            */
+            #ifdef _WINDOWS
+            sprintf(cur_check, "%s/plugins/%s.dll", cur_dir, file_name);
+            #endif
+
+            // printf("checking file: '%s'\n" ,cur_check);
+            r = _plugin_load(cur_check);
+
+            if (CHAUDIO_PLUGIN_ISVALID(r)) {
+                break;
+            }
+
+            cur_dir = strtok(NULL, ":");
+        }
+        free(cur_check);
+        free(chaudio_path);
+        if (CHAUDIO_PLUGIN_ISVALID(r)) return r;
+    }
+
+    return (chaudio_plugin_t) { .name = NULL };
 }
 
 

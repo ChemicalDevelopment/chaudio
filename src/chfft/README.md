@@ -7,3 +7,7 @@ All transforms are 1D
 TODO: Write it, probably using kissfft
 
 
+## KissFFT
+
+This requires https://github.com/mborgerding/kissfft
+

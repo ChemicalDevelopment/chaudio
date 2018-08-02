@@ -1,20 +1,19 @@
 /*
 
-chaudio plugin header file utility
-
+chaudio generator header file for development
 
 */
 
 
-#ifndef __CHAUDIOPLUGIN_H__
-#define __CHAUDIOPLUGIN_H__
+#ifndef __CHAUDIOOUTPUT_H__
+#define __CHAUDIOOUTPUT_H__
 
-#ifndef PLUGIN_NAME
-#error Please define PLUGIN_NAME before including chaudioplugin.h
+#ifndef OUTPUT_NAME
+#error Please define OUTPUT_NAME before including chaudiooutput.h
 #endif
 
 // define this so chaudio.h knows how to handle it
-#define IS_CHAUDIO_PLUGIN
+#define IS_CHAUDIO_OUTPUT
 
 
 #include "chaudio.h"
@@ -25,15 +24,16 @@ chaudio plugin header file utility
 #include <string.h>
 #include <math.h>
 
+// chaudio dynamic link values
 chaudio_dl_init_t _cdl;
 
 // forward declaration. This should be defined in the plugin itself
-chaudio_plugin_t register_plugin();
+chaudio_output_t register_output();
 
 // should be called internally
-chaudio_plugin_t chaudioplugin_export(chaudio_dl_init_t _v) {
+chaudio_output_t chaudiooutput_export(chaudio_dl_init_t _v) {
     _cdl = _v;
-    return register_plugin();
+    return register_output();
 }
 
 /* utility macros/functions */
@@ -42,10 +42,9 @@ chaudio_plugin_t chaudioplugin_export(chaudio_dl_init_t _v) {
 #define chaudio_time (_cdl.chaudio_time)
 #define chaudio_paraminterface_create (_cdl.chaudio_paraminterface_create)
 
-
-/* plugin-specific */
-#define chaudio_plugin_create (_cdl.chaudio_plugin_create)
-
+/* output-specific functions */
+#define chaudio_output_create (_cdl.chaudio_output_create)
+#define chaudio_audio_output_wav (_cdl.chaudio_audio_output_wav)
 
 #endif
 

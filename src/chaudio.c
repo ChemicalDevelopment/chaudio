@@ -65,6 +65,30 @@ double chaudio_time() {
     return time_since_epoch - chaudio_start_time;
 }
 
+// the dl loading init value
+bool has_made_chaudio_dl = false;
+chaudio_dl_init_t _chaudio_dl_init;
+
+chaudio_dl_init_t chaudio_dl_init() {
+    if (!has_made_chaudio_dl) {
+        _chaudio_dl_init = (chaudio_dl_init_t) { 
+            .chaudio_paraminterface_create = chaudio_paraminterface_create,
+
+            .chaudio_plugin_create = chaudio_plugin_create,
+            .chaudio_generator_create = chaudio_generator_create,
+            .chaudio_output_create = chaudio_output_create,
+            .chaudio_time = chaudio_time,
+            .chaudio_audio_output_wav = chaudio_audio_output_wav,
+            .chaudio_audio_output_wav_fp = chaudio_audio_output_wav_fp,
+            .chaudio_read_wav_samples = chaudio_read_wav_samples
+            
+        };
+        has_made_chaudio_dl = true;
+    }
+
+    return _chaudio_dl_init;
+}
+
 
 // used so it doesn't need to be realloc'd or anything
 char * _build_res = NULL;
@@ -98,6 +122,51 @@ char * chaudio_get_build_info() {
     return _build_res;
 }
 
+
+int32_t chaudio_read_wav_samples(char * wav_file, double ** outputs, int64_t * length, int32_t * channels, int32_t * sample_rate) {
+    
+    FILE * fp = fopen(wav_file, "r");
+
+    if (fp == NULL) {
+        printf("can't read wave samples\n");
+        return 1;
+    }
+
+    wav_header_t wav_header;
+    fread(&wav_header, 1, sizeof(wav_header), fp);
+
+    *channels = (int32_t)wav_header.channels;
+    *sample_rate = (int32_t)wav_header.sample_rate;
+    *length = (8 * wav_header.data_size) / (wav_header.channels * wav_header.bits_per_sample);
+
+    int32_t bps = wav_header.bits_per_sample;
+
+    *outputs = realloc(*outputs, sizeof(double) * (*length) * (*channels));
+
+    void * smp = malloc(wav_header.data_size);
+    fread(smp, 1, wav_header.data_size, fp);
+
+
+    int i;
+
+    if (bps == 8) {
+        for (i = 0; i < *length * *channels; ++i) (*outputs)[i] = (double)((int8_t *)smp)[i] / 127.0;
+    } else if (bps == 16) {
+        for (i = 0; i < (*length) * (*channels); ++i) {
+            (*outputs)[i] = (double)(((int16_t *)smp)[i]) / 32768.0;
+        }
+    } else if (bps == 24) {
+        for (i = 0; i < *length * *channels; ++i) {
+            int8_t * smp8i = (int8_t *)smp;
+            (*outputs)[i] = (double)(smp8i[3*i] + smp8i[3*i + 1] * 256 + smp8i[3*i + 2] * 256 * 256) / 8388608.0;
+        }
+    } else {
+        printf("unknown bps: %d\n", bps);
+        return 1;
+    }
+
+    return 0;
+}
 
 // initialization stuff
 audio_t chaudio_audio_create(int64_t length, int32_t channels, int32_t sample_rate) {

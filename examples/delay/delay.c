@@ -68,12 +68,22 @@ int32_t f_set_double(void * _data, char * key, double val) {
         data->delay = val;
     } else if (streq(key, "feedback")) {
         data->feedback = val;
-    } else {
-        // error code, but not very bad
-        return 1;
     }
-    return 0;
+    return CHAUDIO_CONTINUE;
 }
+
+int32_t f_set_int(void * _data, char * key, int32_t val) {
+    return CHAUDIO_CONTINUE;
+}
+
+int32_t f_set_string(void * _data, char * key, char * val) {
+    return CHAUDIO_CONTINUE;
+}
+
+int32_t f_set_audio(void * _data, char * key, audio_t val) {
+    return CHAUDIO_CONTINUE;
+}
+
 
 
 int32_t f_process(void * _data, double * in, double * out, int32_t N) {
@@ -89,16 +99,19 @@ int32_t f_process(void * _data, double * in, double * out, int32_t N) {
     int64_t delay_samples = (int64_t)(delay_time * data->sample_rate);
     int i, j;
     for (i = 0; i < N; ++i) {
-        int64_t to_idx = ((data->cur_buf_idx + i) % data->samples_stored + data->samples_stored) % data->samples_stored;
-        int64_t from_idx = ((data->cur_buf_idx + i - delay_samples) % data->samples_stored + data->samples_stored) % data->samples_stored;
+        // CIRCLEBUF_IDX allows us to seamlessly loop back on the data
+        int64_t to_idx = CIRCLEBUF_IDX(data->cur_buf_idx + i, data->samples_stored);
+        int64_t from_idx = CIRCLEBUF_IDX(data->cur_buf_idx + i - delay_samples, data->samples_stored);
 
         for (j = 0; j < data->channels; ++j) {
+            // update the other data
             data->prev_data[to_idx] = in[data->channels * i + j] + feedback * data->prev_data[from_idx];
+            // combine the current and the echos
             out[data->channels * i + j] = dry * in[data->channels * i + j] + data->prev_data[from_idx];
         }
     }
 
-    data->cur_buf_idx = (data->cur_buf_idx + N) % data->samples_stored;
+    data->cur_buf_idx = CIRCLEBUF_IDX(data->cur_buf_idx + N, data->samples_stored);
 
     return 0;
 }
@@ -109,6 +122,7 @@ int32_t f_free(void * _data) {
 }
 
 chaudio_plugin_t register_plugin() {
-    return chaudio_plugin_create(PLUGIN_NAME, f_init, f_process, f_set_double, f_free);
+    return chaudio_plugin_create(PLUGIN_NAME, f_init, f_process, f_free, chaudio_paraminterface_create(f_set_double, f_set_int, f_set_string, f_set_audio));
 }
+
 
