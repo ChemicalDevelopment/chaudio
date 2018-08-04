@@ -192,8 +192,8 @@ chplug_t chplug_create(char * filename) {
                     if (2 == sscanf(sk, "%s = %s", tmp, tmp2)) {
                         // we have an assignment
                         printf("'%s'='%s'\n", tmp, tmp2);
-                       chast_d_t *lhs, *rhs;
-                       chast_d_t *assign = malloc(sizeof(chast_d_t))
+                       //chast_d_t *lhs, *rhs;
+                      // chast_d_t *assign = malloc(sizeof(chast_d_t));
                     } else {
                         _PARSEERROR_NOARGS("wasn't expecting this");
                     }

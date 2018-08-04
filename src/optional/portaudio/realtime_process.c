@@ -48,7 +48,6 @@ int _pa_callback(
     PaStreamCallbackFlags statusFlags,
     void * _data
 ) {
-    
     pa_data_t * data = (pa_data_t *)_data;
 
     data->in = realloc(data->in, sizeof(double) * N * data->channels);
@@ -76,13 +75,13 @@ int _pa_callback(
         cplg.process(cplg.plugin_data, data->in, data->out, N);
     }
 
+
     double et = chaudio_time();
 
     // output to float
     for (i = 0; i < N * data->channels; ++i) {
         out[i] = (float) data->out[i];
     }
-
     return paContinue;
 }
 

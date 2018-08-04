@@ -27,7 +27,7 @@ target_link_libraries(ch_profile chaudio ${CMAKE_DL_LIBS})
 target_link_libraries(ch_realtime_pipeline chaudio ${CMAKE_DL_LIBS})
 target_link_libraries(ch_pipeline chaudio ${CMAKE_DL_LIBS})
 
-target_link_libraries(ch_plug chplug ${CMAKE_DL_LIBS})
+target_link_libraries(ch_plug chplug chaudio ${CMAKE_DL_LIBS})
 
 
 # TODO: determine best place to store utilities

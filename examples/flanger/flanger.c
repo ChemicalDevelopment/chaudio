@@ -29,8 +29,6 @@ typedef struct _FlangerData {
 
 
 void * f_init(int32_t channels, int32_t sample_rate) {
-    printf("proc\n");
-
     FlangerData * data = malloc(sizeof(FlangerData));
 
     data->channels = channels;
