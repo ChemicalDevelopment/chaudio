@@ -105,7 +105,7 @@ int32_t f_process(void * _data, double * in, double * out, int32_t N) {
 
         for (j = 0; j < data->channels; ++j) {
             // update the other data
-            data->prev_data[to_idx] = in[data->channels * i + j] + feedback * data->prev_data[from_idx];
+            data->prev_data[to_idx] = feedback * (in[data->channels * i + j] + feedback * data->prev_data[from_idx]);
             // combine the current and the echos
             out[data->channels * i + j] = dry * in[data->channels * i + j] + data->prev_data[from_idx];
         }
