@@ -23,6 +23,7 @@ Authors:
 #include <stdio.h>   // used for FILE * streams
 #include <stdlib.h>  // headers
 #include <math.h>    // used for math constants, functions used in macros
+#include <string.h>
 #include <stdbool.h>
 
 #ifndef M_PI

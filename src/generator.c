@@ -63,8 +63,8 @@ chaudio_generator_t _generator_load(char * file_name) {
 
 chaudio_generator_t chaudio_generator_load(char * file_name) {
 
-
     chaudio_generator_t r = _generator_load(file_name);
+
 
     if (CHAUDIO_GENERATOR_ISVALID(r)) {
         return r;
@@ -77,6 +77,8 @@ chaudio_generator_t chaudio_generator_load(char * file_name) {
         char * cur_dir = strtok(chaudio_path, ":");
         
         while (cur_dir != NULL) {
+
+
             // different library naming conventions
             #ifdef __linux__
             sprintf(cur_check, "%s/generators/lib%s.so", cur_dir, file_name);
@@ -95,6 +97,7 @@ chaudio_generator_t chaudio_generator_load(char * file_name) {
             sprintf(cur_check, "%s/generators/%s.dll", cur_dir, file_name);
             #endif
 
+
             // printf("checking file: '%s'\n" ,cur_check);
             r = _generator_load(cur_check);
 
@@ -103,6 +106,7 @@ chaudio_generator_t chaudio_generator_load(char * file_name) {
             }
 
             cur_dir = strtok(NULL, ":");
+
         }
         free(cur_check);
         free(chaudio_path);

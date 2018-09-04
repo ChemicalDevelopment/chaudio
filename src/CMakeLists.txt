@@ -1,5 +1,5 @@
 
-add_subdirectory(chplug)
+add_subdirectory(chfft)
 
 
 set (ext_files "")
@@ -13,7 +13,7 @@ endif()
 
 add_library(chaudio STATIC util.c    chaudio.c signal.c plugin.c generator.c paraminterface.c  output.c pipeline.c   ${ext_files}    chaudio.h)
 
-target_link_libraries(chaudio m ${ext_libs} ${CMAKE_DL_LIBS})
+target_link_libraries(chaudio chfft m ${ext_libs} ${CMAKE_DL_LIBS})
 target_compile_options(chaudio PUBLIC -std=c99 -fpermissive -w -Wall )
 
 

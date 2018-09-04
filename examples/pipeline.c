@@ -49,11 +49,12 @@ int main(int argc, char ** argv) {
     char * cval_str = malloc(4096);
     double cval = 0.0; 
     
-
     chaudio_pipeline_t pipeline = chaudio_pipeline_create(1, 44100);
 
     chaudio_generator_t gen;
     chaudio_output_t out;
+
+
 
     while ((c = getopt (argc, argv, "b:i:p:D:S:o:h")) != (char)-1) {
         if (c == 'h') {
@@ -63,7 +64,8 @@ int main(int argc, char ** argv) {
             printf("  -b [N]                      processing buffer size\n");
             printf("  -i [gen.so]                 generator to use for input\n");
             printf("  -p [plg.so]                 plugin library file\n");
-            printf("  -D [k=v]                    set a value for a plugin\n");
+            printf("  -D [k=v]                    set a double value for a plugin\n");
+            printf("  -S [k=v]                    set a string value for a plugin\n");
             printf("  -o [out.so]                 output library\n");
             printf("  -h                          show this help message\n");
             printf("%s", chaudio_get_build_info());
@@ -98,6 +100,7 @@ int main(int argc, char ** argv) {
             printf("ERROR: incorrect argument: -%c\n", optopt);
             return 1;
         }
+
     }
 
 
@@ -111,12 +114,15 @@ int main(int argc, char ** argv) {
 
     // 0=generator, 1=plugin, 2=output
     int last_loaded = -1;
+    int cur_plugin = -1;
 
     while ((c = getopt (argc, argv, "b:i:p:D:S:o:h")) != (char)-1) {
+
         if (c == 'i') {
             last_loaded = 0;
         } else if (c == 'p') {
             last_loaded = 1;
+            cur_plugin++;
         } else if (c == 'o') {
             last_loaded = 2;
         } else if (c == 'D') {
@@ -127,7 +133,7 @@ int main(int argc, char ** argv) {
                 pipeline.generator->params.set_double(pipeline.generator->generator_data, ckey, cval);
             } else if (last_loaded == 1) {
                 // param for the last plugin
-                chaudio_plugin_t plg = pipeline.plugins[pipeline.plugins_len-1];
+                chaudio_plugin_t plg = pipeline.plugins[cur_plugin];
                 plg.params.set_double(plg.plugin_data, ckey, cval);
             } else if (last_loaded == 2) {
                 // param for the output
@@ -143,7 +149,7 @@ int main(int argc, char ** argv) {
                 pipeline.generator->params.set_string(pipeline.generator->generator_data, ckey, cval_str);
             } else if (last_loaded == 1) {
                 // param for the last plugin
-                chaudio_plugin_t plg = pipeline.plugins[pipeline.plugins_len-1];
+                chaudio_plugin_t plg = pipeline.plugins[cur_plugin];
                 plg.params.set_string(plg.plugin_data, ckey, cval_str);
             } else if (last_loaded == 2) {
                 // param for the output
@@ -154,7 +160,9 @@ int main(int argc, char ** argv) {
                 exit(1);
             }
         }
+
     }
+
 
     chaudio_pipeline_runstream(&pipeline, bufsize, -1.0, stop_func);
 

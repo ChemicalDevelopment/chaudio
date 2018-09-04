@@ -45,6 +45,7 @@ chaudio_plugin_t chaudioplugin_export(chaudio_dl_init_t _v) {
 
 /* plugin-specific */
 #define chaudio_plugin_create (_cdl.chaudio_plugin_create)
+#define chaudio_read_wav_samples (_cdl.chaudio_read_wav_samples)
 
 
 #endif
