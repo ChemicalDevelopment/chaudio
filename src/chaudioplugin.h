@@ -41,7 +41,10 @@ chaudio_plugin_t chaudioplugin_export(chaudio_dl_init_t _v) {
 #define strkeep(a, b) a = realloc(a, strlen(b) + 1); strcpy(a, b);
 #define chaudio_time (_cdl.chaudio_time)
 #define chaudio_paraminterface_create (_cdl.chaudio_paraminterface_create)
-
+#define chfft_plan_free (_cdl.chfft_plan_free)
+#define chfft_fft_plan (_cdl.chfft_fft_plan)
+#define chfft_ifft_plan (_cdl.chfft_ifft_plan)
+#define chfft_doplan (_cdl.chfft_doplan)
 
 /* plugin-specific */
 #define chaudio_plugin_create (_cdl.chaudio_plugin_create)

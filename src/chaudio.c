@@ -80,7 +80,13 @@ chaudio_dl_init_t chaudio_dl_init() {
             .chaudio_time = chaudio_time,
             .chaudio_audio_output_wav = chaudio_audio_output_wav,
             .chaudio_audio_output_wav_fp = chaudio_audio_output_wav_fp,
-            .chaudio_read_wav_samples = chaudio_read_wav_samples
+            .chaudio_read_wav_samples = chaudio_read_wav_samples,
+
+
+            .chfft_fft_plan = chfft_fft_plan,
+            .chfft_ifft_plan = chfft_ifft_plan,
+            .chfft_plan_free = chfft_plan_free,
+            .chfft_doplan = chfft_doplan
             
         };
         has_made_chaudio_dl = true;
@@ -146,8 +152,8 @@ int32_t chaudio_read_wav_samples(char * wav_file, double ** outputs, int64_t * l
     void * smp = malloc(wav_header.data_size);
     fread(smp, 1, wav_header.data_size, fp);
 
-
     int i;
+
 
     if (bps == 8) {
         for (i = 0; i < *length * *channels; ++i) (*outputs)[i] = (double)((int8_t *)smp)[i] / 127.0;
@@ -160,10 +166,16 @@ int32_t chaudio_read_wav_samples(char * wav_file, double ** outputs, int64_t * l
             int8_t * smp8i = (int8_t *)smp;
             (*outputs)[i] = (double)(smp8i[3*i] + smp8i[3*i + 1] * 256 + smp8i[3*i + 2] * 256 * 256) / 8388608.0;
         }
+    } else if (bps == 32 && wav_header.format_type != 1) {
+        for (i = 0; i < *length * *channels; ++i) {
+            (*outputs)[i] = (double)(((float *)smp)[i]);
+        }
     } else {
         printf("unknown bps: %d\n", bps);
         return 1;
     }
+
+    printf("%d\n", *length);
 
     return 0;
 }

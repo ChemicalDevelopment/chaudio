@@ -25,6 +25,8 @@ Authors:
 #include <math.h>    // used for math constants, functions used in macros
 #include <string.h>
 #include <stdbool.h>
+#include <complex.h>
+
 
 #ifndef M_PI
 #define M_PI 3.141592653589793238462643383279502884
@@ -316,6 +318,18 @@ typedef struct _chaudio_pipeline_s {
 
 
 
+// for FFTs
+typedef struct _chfft_plan_s {
+
+    int N;
+    bool is_inverse;
+
+    void * _internal;
+
+} chfft_plan_t;
+
+
+
 typedef struct _chaudio_dl_init_s {
 
 
@@ -334,6 +348,17 @@ typedef struct _chaudio_dl_init_s {
     int32_t (*chaudio_audio_output_wav)(char * file_path, audio_t audio, int32_t format);
 
     double (*chaudio_time)();
+
+
+    chfft_plan_t (*chfft_fft_plan)(int N);
+
+    chfft_plan_t (*chfft_ifft_plan)(int N);
+
+    void (*chfft_plan_free)(chfft_plan_t plan);
+
+    void (*chfft_doplan)(double * audio_data, complex double * freq_data, chfft_plan_t plan);
+
+
 
 } chaudio_dl_init_t;
 

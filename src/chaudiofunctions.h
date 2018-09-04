@@ -257,6 +257,14 @@ void chaudio_portaudio_realtime_process(chaudio_pipeline_t * pipeline, int32_t b
 #endif
 
 
+chfft_plan_t chfft_fft_plan(int N);
+
+chfft_plan_t chfft_ifft_plan(int N);
+
+void chfft_plan_free(chfft_plan_t plan);
+
+void chfft_doplan(double * audio_data, complex double * freq_data, chfft_plan_t plan);
+
 
 #endif
 
