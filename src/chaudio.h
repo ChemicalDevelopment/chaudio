@@ -164,15 +164,15 @@ typedef struct audio_t {
     // how many samples are there in each channel (so total number of samples = channels * length)
     
     // `length`: the number of samples that the chunk of audio is representing (each channel has this many)
-    int64_t length;
+    int length;
 
     // `channels`: the number of different `channels` of audio.
     // For instance, stereo tracks are 2 channels (channel 0 is Left, channel 1 is Right). Mono is 1 channel
-    int32_t channels;
+    int channels;
 
     // sample rate, in samples/second. 
     // The most widely used sample rate (44100) is defined as CHAUDIO_DEFAULT_SAMPLE_RATE
-    int32_t sample_rate;
+    int sample_rate;
 
     // a pointer to memory to the sample data, with memory size of at least `sizeof(double) * length* channels`
     // the data is stored as interlaced channels
@@ -192,9 +192,9 @@ typedef bool (*chaudio_IsFinished)();
 // should not return NULL (unless a failure has occured)
 // dict may be NULL!
 // if not, cast to chdict_t *
-typedef void * (*chaudio_PluginInit)(int32_t channels, int32_t sample_rate);
-typedef void * (*chaudio_GeneratorInit)(int32_t channels, int32_t sample_rate);
-typedef void * (*chaudio_OutputInit)(int32_t channels, int32_t sample_rate);
+typedef void * (*chaudio_PluginInit)(int channels, int sample_rate);
+typedef void * (*chaudio_GeneratorInit)(int channels, int sample_rate);
+typedef void * (*chaudio_OutputInit)(int channels, int sample_rate);
 
 
 // _data is the same pointer created by the ch_PluginInit function
@@ -204,16 +204,16 @@ typedef void * (*chaudio_OutputInit)(int32_t channels, int32_t sample_rate);
 // there are N samples for each channel
 // dictionary may be NULL!
 // if not, cast to chdict_t *
-typedef int32_t (*chaudio_PluginProcess)(void * _data, double * in, double * out, int32_t N);
-typedef int32_t (*chaudio_GeneratorGenerate)(void * _data, double * out, int32_t N);
-typedef int32_t (*chaudio_OutputDump)(void * _data, double * in, int32_t N);
+typedef int (*chaudio_PluginProcess)(void * _data, double * in, double * out, int N);
+typedef int (*chaudio_GeneratorGenerate)(void * _data, double * out, int N);
+typedef int (*chaudio_OutputDump)(void * _data, double * in, int N);
 
 
 // generic set 
-typedef int32_t (*chaudio_SetDouble)(void * _data, char * key, double val);
-typedef int32_t (*chaudio_SetInt)(void * _data, char * key, int32_t val);
-typedef int32_t (*chaudio_SetString)(void * _data, char * key, char * val);
-typedef int32_t (*chaudio_SetAudio)(void * _data, char * key, audio_t val);
+typedef int (*chaudio_SetDouble)(void * _data, char * key, double val);
+typedef int (*chaudio_SetInt)(void * _data, char * key, int val);
+typedef int (*chaudio_SetString)(void * _data, char * key, char * val);
+typedef int (*chaudio_SetAudio)(void * _data, char * key, audio_t val);
 
 typedef struct chaudio_paraminterface_t {
 
@@ -227,9 +227,9 @@ typedef struct chaudio_paraminterface_t {
 
 
 // just the de-initializer
-typedef int32_t (*chaudio_PluginFree)(void * _data);
-typedef int32_t (*chaudio_GeneratorFree)(void * _data);
-typedef int32_t (*chaudio_OutputFree)(void * _data);
+typedef int (*chaudio_PluginFree)(void * _data);
+typedef int (*chaudio_GeneratorFree)(void * _data);
+typedef int (*chaudio_OutputFree)(void * _data);
 
 
 /* chaudio_plugin_t - a plugin structure. Has input and output capabilities, useful for real time audio processing */
@@ -245,7 +245,7 @@ typedef struct _chaudio_plugin_s {
 
     void * plugin_data;
 
-    int32_t channels, sample_rate;
+    int channels, sample_rate;
 
     // in/out variables
     double * in, * out;
@@ -267,10 +267,10 @@ typedef struct _chaudio_generator_s {
 
     chaudio_paraminterface_t params;
 
-    int32_t channels, sample_rate;
+    int channels, sample_rate;
 
     // how many samples are currently stored
-    int32_t N;
+    int N;
     
     double * out;
 
@@ -290,7 +290,7 @@ typedef struct _chaudio_output_s {
 
     chaudio_paraminterface_t params;
 
-    int32_t channels, sample_rate;
+    int channels, sample_rate;
 
 } chaudio_output_t;
 
@@ -304,7 +304,7 @@ typedef struct _chaudio_pipeline_s {
     chaudio_output_t * output;
 
     // should be uniform across the plugins
-    int32_t channels, sample_rate;
+    int channels, sample_rate;
 
     int plugins_len;
     chaudio_plugin_t * plugins;
@@ -332,13 +332,13 @@ typedef struct _chfft_s {
 typedef struct _chaudio_dl_init_s {
 
 
-    audio_t (*chaudio_audio_create)(int64_t length, int32_t channels, int32_t sample_rate);
+    audio_t (*chaudio_audio_create)(int length, int channels, int sample_rate);
     audio_t (*chaudio_audio_create_wav)(char * file_path);
-    int32_t (*chaudio_audio_free)(audio_t * audio);
-    audio_t (*chaudio_pad)(audio_t input, int64_t num_zeros, audio_t * output);
+    int (*chaudio_audio_free)(audio_t * audio);
+    audio_t (*chaudio_pad)(audio_t input, int num_zeros, audio_t * output);
 
 
-    int32_t (*chaudio_read_wav_samples)(char * wav_file, double ** outputs, int64_t * length, int32_t * channels, int32_t * sample_rate);
+    int (*chaudio_read_wav_samples)(char * wav_file, double ** outputs, int * length, int * channels, int * sample_rate);
 
     chaudio_paraminterface_t (*chaudio_paraminterface_create)(chaudio_SetDouble set_double, chaudio_SetInt set_int, chaudio_SetString set_string, chaudio_SetAudio set_audio);
 
@@ -349,8 +349,8 @@ typedef struct _chaudio_dl_init_s {
     chaudio_output_t (*chaudio_output_create)(char * name, chaudio_OutputInit _init, chaudio_OutputDump _generate, chaudio_OutputFree _free, chaudio_paraminterface_t params);
 
 
-    int32_t (*chaudio_audio_output_wav_fp)(FILE * fp, audio_t audio, int32_t format);
-    int32_t (*chaudio_audio_output_wav)(char * file_path, audio_t audio, int32_t format);
+    int (*chaudio_audio_output_wav_fp)(FILE * fp, audio_t audio, int format);
+    int (*chaudio_audio_output_wav)(char * file_path, audio_t audio, int format);
 
     double (*chaudio_time)();
 

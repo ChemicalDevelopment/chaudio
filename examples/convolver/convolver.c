@@ -14,7 +14,7 @@
 typedef struct _ConvolverData {
     
     // basic stuff about the incoming stream
-    int32_t channels, sample_rate;
+    int channels, sample_rate;
 
     double * history;
 
@@ -27,7 +27,7 @@ typedef struct _ConvolverData {
 } ConvolverData;
 
 
-void * f_init(int32_t channels, int32_t sample_rate) {
+void * f_init(int channels, int sample_rate) {
 
     ConvolverData * data = malloc(sizeof(ConvolverData));
 
@@ -45,19 +45,18 @@ void * f_init(int32_t channels, int32_t sample_rate) {
     return (void *)data;
 }
 
-int32_t f_set_double(void * _data, char * key, double val) {
+int f_set_double(void * _data, char * key, double val) {
     return CHAUDIO_CONTINUE;
 }
 
-int32_t f_set_int(void * _data, char * key, int32_t val) {
+int f_set_int(void * _data, char * key, int val) {
     return CHAUDIO_CONTINUE;
 }
 
-int32_t f_set_string(void * _data, char * key, char * val) {
+int f_set_string(void * _data, char * key, char * val) {
     ConvolverData * data = (ConvolverData *)_data;
 
     if (strcmp(key, "impulse") == 0) {
-
         _cdl.chaudio_audio_free(&data->impulse);
 
         data->impulse = _cdl.chaudio_audio_create_wav(val);
@@ -68,20 +67,22 @@ int32_t f_set_string(void * _data, char * key, char * val) {
 
         _cdl.chfft_realloc(&data->impulse_FFT, data->impulse.length, data->channels);
         _cdl.chfft_realloc(&data->current_FFT, data->impulse.length, data->channels);
+
+
         _cdl.chfft_fft(data->impulse, &data->impulse_FFT);
+
     }
 
     return CHAUDIO_CONTINUE;
 }
 
-int32_t f_set_audio(void * _data, char * key, audio_t val) {
+int f_set_audio(void * _data, char * key, audio_t val) {
     return CHAUDIO_CONTINUE;
 }
 
 
 
-int32_t f_process(void * _data, double * in, double * out, int32_t N) {
-
+int f_process(void * _data, double * in, double * out, int N) {
     ConvolverData * data = (ConvolverData *)_data;
 
     int i, j;

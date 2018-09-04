@@ -30,8 +30,8 @@ audio_t chaudio_copy(audio_t input, audio_t * output) {
 // give it NULL as output to automatically return a correctly allocated array.
 // You must free it if so
 // if output is the same as input, it is freed and a new values is returned
-audio_t chaudio_resample(audio_t input, int64_t new_sample_rate, audio_t * output) {
-    int64_t new_length = (int)floor(((double)new_sample_rate * input.length) / input.sample_rate + 0.5);
+audio_t chaudio_resample(audio_t input, int new_sample_rate, audio_t * output) {
+    int new_length = (int)floor(((double)new_sample_rate * input.length) / input.sample_rate + 0.5);
 
     audio_t res;
 
@@ -175,7 +175,7 @@ audio_t chaudio_gain(audio_t input, double db, audio_t * output) {
     return res;
 }
 
-audio_t chaudio_pad(audio_t input, int64_t added_zeros, audio_t * output) {
+audio_t chaudio_pad(audio_t input, int added_zeros, audio_t * output) {
     if (output == NULL) {
         audio_t res = chaudio_audio_create_audio(input);
         chaudio_audio_realloc(&res, input.length + added_zeros, 0, 0);

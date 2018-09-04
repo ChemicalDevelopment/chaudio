@@ -49,7 +49,7 @@ chaudio_plugin_t chaudio_plugin_create_plugin(chaudio_plugin_t plg) {
     return r;
 }
 
-void chaudio_plugin_init(chaudio_plugin_t * plugin, int32_t channels, int32_t sample_rate) {
+void chaudio_plugin_init(chaudio_plugin_t * plugin, int channels, int sample_rate) {
     plugin->channels = channels;
     plugin->sample_rate = sample_rate;
 
@@ -58,7 +58,7 @@ void chaudio_plugin_init(chaudio_plugin_t * plugin, int32_t channels, int32_t sa
 }
 
 // 'to' cannot be NULL
-audio_t chaudio_plugin_transform(chaudio_plugin_t * plugin, audio_t from, int32_t bufsize, audio_t * output) {
+audio_t chaudio_plugin_transform(chaudio_plugin_t * plugin, audio_t from, int bufsize, audio_t * output) {
     // ensure enough space
     audio_t into;
     if (output == NULL) {
@@ -72,13 +72,13 @@ audio_t chaudio_plugin_transform(chaudio_plugin_t * plugin, audio_t from, int32_
     plugin->in = (double *)realloc(plugin->in, sizeof(double) * bufsize * plugin->channels);
     plugin->out = (double *)realloc(plugin->out, sizeof(double) * bufsize * plugin->channels);
 
-    int32_t i;
+    int i;
     for (i = 0; i < from.length; i += bufsize) {
         int cur_len = bufsize;
 
         // if its near the last
         if (from.length - i < bufsize) cur_len = from.length - i;
-        int32_t c, j, k;
+        int c, j, k;
 
 
         for (j = 0; j < cur_len; ++j) {
@@ -109,9 +109,9 @@ audio_t chaudio_plugin_transform(chaudio_plugin_t * plugin, audio_t from, int32_
     return into;
 }
 
-int32_t chaudio_plugin_free(chaudio_plugin_t * plugin) {
+int chaudio_plugin_free(chaudio_plugin_t * plugin) {
     if (plugin->free != NULL) {
-        int32_t res = plugin->free(plugin->plugin_data);
+        int res = plugin->free(plugin->plugin_data);
         if (res != 0) printf("Warning: plugin being freed had a non-zero code: %d\n", res);
         return res;
     }

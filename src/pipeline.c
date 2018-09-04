@@ -1,7 +1,7 @@
 
 #include "chaudio.h"
 
-chaudio_pipeline_t chaudio_pipeline_create(int32_t channels, int32_t sample_rate) {
+chaudio_pipeline_t chaudio_pipeline_create(int channels, int sample_rate) {
     chaudio_pipeline_t res;
     res.plugins_len = 0;
     res.plugins = NULL;
@@ -30,7 +30,7 @@ void chaudio_pipeline_add(chaudio_pipeline_t * pipeline, chaudio_plugin_t plugin
 
 }
 
-audio_t chaudio_pipeline_transform(chaudio_pipeline_t * pipeline, audio_t from, int32_t bufsize, audio_t * output) {
+audio_t chaudio_pipeline_transform(chaudio_pipeline_t * pipeline, audio_t from, int bufsize, audio_t * output) {
     audio_t res;
     if (output == NULL) {
         res = chaudio_audio_create_audio(from);
@@ -57,7 +57,7 @@ void chaudio_pipeline_init(chaudio_pipeline_t * pipeline) {
     chaudio_output_init(pipeline->output, pipeline->channels, pipeline->sample_rate);
 }
 
-void chaudio_pipeline_runstream(chaudio_pipeline_t * pipeline, int32_t bufsize, double audio_length, chaudio_IsFinished stop_func) {
+void chaudio_pipeline_runstream(chaudio_pipeline_t * pipeline, int bufsize, double audio_length, chaudio_IsFinished stop_func) {
 
     pipeline->in = realloc(pipeline->in, sizeof(double) * pipeline->channels * bufsize);
     pipeline->out = realloc(pipeline->out, sizeof(double) * pipeline->channels * bufsize);
@@ -70,7 +70,7 @@ void chaudio_pipeline_runstream(chaudio_pipeline_t * pipeline, int32_t bufsize, 
 
     bool keep_going = true;
 
-    int32_t gen_res = CHAUDIO_CONTINUE;
+    int gen_res = CHAUDIO_CONTINUE;
 
     while (keep_going) {
         if (pipeline->generator == NULL) {

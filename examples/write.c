@@ -46,7 +46,7 @@ int main(int argc, char ** argv) {
 
     // read in the file
     if (input_file == NULL || strcmp(input_file, "-") == 0) {
-        audio = chaudio_audio_create_wav_fp(stdin);
+       // audio = chaudio_audio_create_wav_fp(stdin);
     } else {
         audio = chaudio_audio_create_wav(input_file);
     }

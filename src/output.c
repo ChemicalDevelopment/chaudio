@@ -21,7 +21,7 @@ chaudio_output_t chaudio_output_create(char * name, chaudio_OutputInit _init, ch
     return out;
 }
 
-int32_t chaudio_output_init(chaudio_output_t * output, int32_t channels, int32_t sample_rate) {
+int chaudio_output_init(chaudio_output_t * output, int channels, int sample_rate) {
     output->channels = channels;
     output->sample_rate = sample_rate;
 
@@ -31,11 +31,11 @@ int32_t chaudio_output_init(chaudio_output_t * output, int32_t channels, int32_t
     return (_data) == NULL;
 }
 
-int32_t chaudio_output_dump(chaudio_output_t * output, double * in, int32_t N) {
+int chaudio_output_dump(chaudio_output_t * output, double * in, int N) {
     return output->dump(output->output_data, in, N);
 }
 
-int32_t chaudio_output_free(chaudio_output_t * output) {
+int chaudio_output_free(chaudio_output_t * output) {
     return output->free(output->output_data);
 }
 

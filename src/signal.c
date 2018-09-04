@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 // basic instrumentation
-void chaudio_signal_generate(audio_t * output, int32_t waveform, double hz, double phase_offset) {
+void chaudio_signal_generate(audio_t * output, int waveform, double hz, double phase_offset) {
     if (output == NULL || output->data == NULL) {
         printf("warning: signal generation encountered uninitialized output\n");
         return;

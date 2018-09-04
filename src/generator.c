@@ -19,7 +19,7 @@ chaudio_generator_t chaudio_generator_create(char * name, chaudio_GeneratorInit 
     return gen;
 }
 
-int32_t chaudio_generator_init(chaudio_generator_t * gen, int32_t channels, int32_t sample_rate) {
+int chaudio_generator_init(chaudio_generator_t * gen, int channels, int sample_rate) {
     gen->channels = channels;
     gen->sample_rate = sample_rate;
 
@@ -30,13 +30,13 @@ int32_t chaudio_generator_init(chaudio_generator_t * gen, int32_t channels, int3
 }
 
 // generates and stores into gen->out
-int32_t chaudio_generator_generate(chaudio_generator_t * gen, int32_t bufsize) {
+int chaudio_generator_generate(chaudio_generator_t * gen, int bufsize) {
     gen->out = realloc(gen->out, sizeof(double) * bufsize * gen->channels);
     gen->N = bufsize;
     return gen->generate(gen->generator_data, gen->out, bufsize);
 }
 
-int32_t chaudio_generator_free(chaudio_generator_t * gen) {
+int chaudio_generator_free(chaudio_generator_t * gen) {
     return gen->free(gen->generator_data);
 }
 
