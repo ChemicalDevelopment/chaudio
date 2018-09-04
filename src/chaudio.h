@@ -317,20 +317,25 @@ typedef struct _chaudio_pipeline_s {
 
 
 
+typedef struct _chfft_s {
 
-// for FFTs
-typedef struct _chfft_plan_s {
+    int N_bins;
+    int N_channels;
+    int sample_rate;
 
-    int N;
-    bool is_inverse;
+    complex double * bins;   
 
-    void * _internal;
-
-} chfft_plan_t;
+} chfft_t;
 
 
 
 typedef struct _chaudio_dl_init_s {
+
+
+    audio_t (*chaudio_audio_create)(int64_t length, int32_t channels, int32_t sample_rate);
+    audio_t (*chaudio_audio_create_wav)(char * file_path);
+    int32_t (*chaudio_audio_free)(audio_t * audio);
+    audio_t (*chaudio_pad)(audio_t input, int64_t num_zeros, audio_t * output);
 
 
     int32_t (*chaudio_read_wav_samples)(char * wav_file, double ** outputs, int64_t * length, int32_t * channels, int32_t * sample_rate);
@@ -350,15 +355,14 @@ typedef struct _chaudio_dl_init_s {
     double (*chaudio_time)();
 
 
-    chfft_plan_t (*chfft_fft_plan)(int N);
+    chfft_t (*chfft_alloc)(int Nsamples, int Nchannels, int sample_rate);
 
-    chfft_plan_t (*chfft_ifft_plan)(int N);
+void (*chfft_realloc)(chfft_t * r, int Nsamples, int Nchannels);
 
-    void (*chfft_plan_free)(chfft_plan_t plan);
+void (*chfft_free)(chfft_t * cf);
 
-    void (*chfft_doplan)(double * audio_data, complex double * freq_data, chfft_plan_t plan);
-
-
+chfft_t (*chfft_fft)(audio_t audio, chfft_t * res);
+audio_t (*chfft_ifft)(chfft_t freqs, audio_t * res);
 
 } chaudio_dl_init_t;
 

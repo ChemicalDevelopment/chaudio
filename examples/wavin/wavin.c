@@ -22,6 +22,9 @@ typedef struct WavInData {
     int32_t read_channels, read_sample_rate;
     double * read_data;
 
+    // can be 'loop', 'stop', or 'silence'
+    char * extend_type;
+
 } WavInData;
 
 
@@ -38,6 +41,7 @@ void * f_init(int32_t channels, int32_t sample_rate) {
     //chaudio_read_wav_samples("read.wav", &data->read_data, &data->read_N, &data->read_channels, &data->read_sample_rate);
 
     data->cur_off = 0;
+    data->extend_type = strdup("stop");
 
     return (void *)data;
 }
@@ -62,6 +66,8 @@ int32_t f_set_string(void * _data, char * key, char * val) {
         }
         // reset to beginning of file
         data->cur_off = 0;
+    } else if (strcmp(key, "extend") == 0) {
+        strkeep(data->extend_type, val);
     }
 
     return CHAUDIO_CONTINUE;
@@ -81,7 +87,11 @@ int32_t f_generate(void * _data, double * out, int32_t N) {
         for (j = 0; j < data->channels; ++j) {
             if (data->read_data == NULL || i + data->cur_off >= data->read_N) {
                 // just zero them out
-                out[data->channels * i + j] = 0.0;
+                if (strcmp(data->extend_type, "loop") == 0) {
+                    out[data->channels * i + j] = data->read_data[data->read_channels * ((i +    data->cur_off) % N) + j];
+                } else {
+                    out[data->channels * i + j] = 0.0;
+                }
             } else if (j > data->read_channels) {
                 out[data->channels * i + j] = data->read_data[data->read_channels * (i + data->cur_off) + 0];
             } else {
@@ -92,7 +102,8 @@ int32_t f_generate(void * _data, double * out, int32_t N) {
 
     data->cur_off += N;
 
-    if (data->cur_off > data->read_N) {
+    if (data->cur_off > data->read_N && strcmp(data->extend_type, "stop") == 0) {
+        printf("%s\n", data->extend_type);
         // causes pipeline to finish
         return CHAUDIO_FINISHED;
     } else {

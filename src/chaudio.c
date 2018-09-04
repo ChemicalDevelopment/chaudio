@@ -72,6 +72,12 @@ chaudio_dl_init_t _chaudio_dl_init;
 chaudio_dl_init_t chaudio_dl_init() {
     if (!has_made_chaudio_dl) {
         _chaudio_dl_init = (chaudio_dl_init_t) { 
+
+            .chaudio_audio_create = chaudio_audio_create,
+            .chaudio_audio_create_wav = chaudio_audio_create_wav,
+            .chaudio_pad = chaudio_pad,
+
+            .chaudio_audio_free = chaudio_audio_free,
             .chaudio_paraminterface_create = chaudio_paraminterface_create,
 
             .chaudio_plugin_create = chaudio_plugin_create,
@@ -83,10 +89,11 @@ chaudio_dl_init_t chaudio_dl_init() {
             .chaudio_read_wav_samples = chaudio_read_wav_samples,
 
 
-            .chfft_fft_plan = chfft_fft_plan,
-            .chfft_ifft_plan = chfft_ifft_plan,
-            .chfft_plan_free = chfft_plan_free,
-            .chfft_doplan = chfft_doplan
+            .chfft_alloc = chfft_alloc,
+            .chfft_realloc = chfft_realloc,
+            .chfft_free = chfft_free,
+            .chfft_fft = chfft_fft,
+            .chfft_ifft = chfft_ifft
             
         };
         has_made_chaudio_dl = true;
@@ -154,7 +161,6 @@ int32_t chaudio_read_wav_samples(char * wav_file, double ** outputs, int64_t * l
 
     int i;
 
-
     if (bps == 8) {
         for (i = 0; i < *length * *channels; ++i) (*outputs)[i] = (double)((int8_t *)smp)[i] / 127.0;
     } else if (bps == 16) {
@@ -166,16 +172,14 @@ int32_t chaudio_read_wav_samples(char * wav_file, double ** outputs, int64_t * l
             int8_t * smp8i = (int8_t *)smp;
             (*outputs)[i] = (double)(smp8i[3*i] + smp8i[3*i + 1] * 256 + smp8i[3*i + 2] * 256 * 256) / 8388608.0;
         }
-    } else if (bps == 32 && wav_header.format_type != 1) {
+    } else if (bps == 32) {
         for (i = 0; i < *length * *channels; ++i) {
-            (*outputs)[i] = (double)(((float *)smp)[i]);
+            (*outputs)[i] = 0.0;
         }
     } else {
         printf("unknown bps: %d\n", bps);
         return 1;
     }
-
-    printf("%d\n", *length);
 
     return 0;
 }
@@ -257,7 +261,7 @@ audio_t chaudio_audio_create_wav_fp(FILE * fp) {
             float * wave_floats = (float *)wave_data;
             for (i = 0; i < audio.length; ++i) {
                 for (j = 0; j < audio.channels; ++j) {
-                    audio.data[audio.channels * i + j] = wave_floats[audio.channels * i + j];
+                    audio.data[audio.channels * i + j] = (double)wave_floats[audio.channels * i + j];
                 }
             } 
         } else if (wave_header.bits_per_sample == 8 * sizeof(double)) { // 'double' type
@@ -272,7 +276,7 @@ audio_t chaudio_audio_create_wav_fp(FILE * fp) {
             return AUDIO_NULL;
         }
     
-    } if (wave_header.format_type == 1 || true) { //standard PCM packed fixed point, or assume all others are this
+    } else if (wave_header.format_type == 1) { //standard PCM packed fixed point, or assume all others are this
         if (wave_header.bits_per_sample == 8 * sizeof(int8_t)) {
             int8_t * wave_int8s = (int8_t *)wave_data;
             double tmp;

@@ -256,15 +256,15 @@ void chaudio_portaudio_realtime_process(chaudio_pipeline_t * pipeline, int32_t b
 
 #endif
 
+// creates a blank fft result from (what would be 'Nsamples'). Used for allocation
+chfft_t chfft_alloc(int Nsamples, int Nchannels, int sample_rate);
 
-chfft_plan_t chfft_fft_plan(int N);
+void chfft_realloc(chfft_t * r, int Nsamples, int Nchannels);
 
-chfft_plan_t chfft_ifft_plan(int N);
+void chfft_free(chfft_t * cf);
 
-void chfft_plan_free(chfft_plan_t plan);
-
-void chfft_doplan(double * audio_data, complex double * freq_data, chfft_plan_t plan);
-
+chfft_t chfft_fft(audio_t audio, chfft_t * res);
+audio_t chfft_ifft(chfft_t freqs, audio_t * res);
 
 #endif
 

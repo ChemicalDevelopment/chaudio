@@ -8,7 +8,7 @@
 
 #include "chaudioplugin.h"
 
-#define HISTORY_DURATION 10
+#define HISTORY_DURATION 12
 
 // data struct passed between functions
 typedef struct _ConvolverData {
@@ -18,20 +18,12 @@ typedef struct _ConvolverData {
 
     double * history;
 
-    // plugin specific parameters
-    int64_t impulse_N;
-    int32_t impulse_C;
-    double * impulse;
-    
-    double complex * impulse_FFT;
+    audio_t impulse;
 
-    double complex * audio_FFT;
+    chfft_t impulse_FFT;
+    chfft_t current_FFT;
 
-    double * convolved_signal;
-
-    chfft_plan_t impulse_plan;
-    chfft_plan_t inverse_plan;
-
+    audio_t convolved;
 } ConvolverData;
 
 
@@ -44,12 +36,11 @@ void * f_init(int32_t channels, int32_t sample_rate) {
 
     data->history = malloc(sizeof(double) * channels * sample_rate * HISTORY_DURATION);
 
-    data->impulse = NULL;
-    data->impulse_FFT = NULL;
-    data->audio_FFT = NULL;
-    data->convolved_signal = NULL;
+    data->impulse = _cdl.chaudio_audio_create(1, data->channels, data->sample_rate);
+    data->impulse_FFT = _cdl.chfft_alloc(2, data->channels, data->sample_rate);
+    data->current_FFT = _cdl.chfft_alloc(2, data->channels, data->sample_rate);
 
-    data->impulse_plan.N = -1;
+    data->convolved = _cdl.chaudio_audio_create(1, data->channels, data->sample_rate);
 
     return (void *)data;
 }
@@ -66,40 +57,18 @@ int32_t f_set_string(void * _data, char * key, char * val) {
     ConvolverData * data = (ConvolverData *)_data;
 
     if (strcmp(key, "impulse") == 0) {
-        int32_t _;
 
-        int32_t res = chaudio_read_wav_samples(val, &data->impulse, &data->impulse_N, &data->impulse_C, &_);
-        printf("%d\n", data->impulse_N);
+        _cdl.chaudio_audio_free(&data->impulse);
 
-        if (data->impulse_N % 2 != 0) {
-            data->impulse_N++;
-            data->impulse = realloc(data->impulse, sizeof(double) * data->impulse_N * data->impulse_C);
-            int i;
-            for (i = 0; i < data->impulse_C; ++i) {
-                data->impulse[data->impulse_N * data->impulse_C - i - 1] = 0.0;
-            }
-        } 
+        data->impulse = _cdl.chaudio_audio_create_wav(val);
 
-        if (res != 0) {
-            printf("error reading file '%s'\n", val);
+        if (data->impulse.length % 2 != 0) {
+            _cdl.chaudio_pad(data->impulse, 1, &data->impulse);
         }
 
-        data->impulse_FFT = realloc(data->impulse_FFT, sizeof(double complex) * (data->impulse_N / 2 + 1));
-        data->audio_FFT = realloc(data->audio_FFT, sizeof(double complex) * (data->impulse_N / 2 + 1));
-        data->convolved_signal = realloc(data->convolved_signal, sizeof(double) * data->impulse_N);
-        
-        chfft_plan_free(data->impulse_plan);
-        chfft_plan_free(data->inverse_plan);
-
-        data->impulse_plan = chfft_fft_plan(data->impulse_N);
-
-        chfft_doplan(data->impulse, data->impulse_FFT, data->impulse_plan);
-
-
-        data->inverse_plan = chfft_ifft_plan(data->impulse_N);
-        // reset to beginning of file
-
-
+        _cdl.chfft_realloc(&data->impulse_FFT, data->impulse.length, data->channels);
+        _cdl.chfft_realloc(&data->current_FFT, data->impulse.length, data->channels);
+        _cdl.chfft_fft(data->impulse, &data->impulse_FFT);
     }
 
     return CHAUDIO_CONTINUE;
@@ -125,18 +94,23 @@ int32_t f_process(void * _data, double * in, double * out, int32_t N) {
         data->history[i] = in[i - data->channels * (data->sample_rate * HISTORY_DURATION - N)];
     }
 
-    chfft_doplan(data->history + ((HISTORY_DURATION * data->sample_rate - data->impulse_N) * data->channels), data->audio_FFT, data->impulse_plan);
+    // use a proxy audio to act like an audio_t
+    audio_t proxy;
+    proxy.channels = data->channels;
+    proxy.sample_rate = data->sample_rate;
+    proxy.length = data->impulse.length;
+    proxy.data = data->history + ((HISTORY_DURATION * data->sample_rate - data->impulse.length) * data->channels);
+    
+    _cdl.chfft_fft(proxy, &data->current_FFT);
 
-    for (i = 0; i < data->impulse_N / 2 + 1; ++i) {
-        data->audio_FFT[i] = data->audio_FFT[i] * data->impulse_FFT[i];
+    for (i = 0; i < data->current_FFT.N_bins * data->current_FFT.N_channels; ++i) {
+        data->current_FFT.bins[i] *= data->impulse_FFT.bins[i];
     }
 
-
-    chfft_doplan(data->convolved_signal, data->audio_FFT, data->inverse_plan);
-
+    _cdl.chfft_ifft(data->current_FFT, &data->convolved);
 
     for (i = 0; i < N; ++i) {
-        out[i] = data->convolved_signal[i + data->impulse_N - N] / data->impulse_N;
+        out[i] = data->convolved.data[i + data->convolved.length - N] / data->convolved.length;
     }
 
     return 0;

@@ -46,6 +46,7 @@ chaudio_plugin_t chaudioplugin_export(chaudio_dl_init_t _v) {
 #define chfft_ifft_plan (_cdl.chfft_ifft_plan)
 #define chfft_doplan (_cdl.chfft_doplan)
 
+
 /* plugin-specific */
 #define chaudio_plugin_create (_cdl.chaudio_plugin_create)
 #define chaudio_read_wav_samples (_cdl.chaudio_read_wav_samples)
