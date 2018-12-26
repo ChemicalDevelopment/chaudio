@@ -53,11 +53,12 @@ int _pa_callback(
     data->in = realloc(data->in, sizeof(double) * N * data->channels);
     data->out = realloc(data->out, sizeof(double) * N * data->channels);
 
+
     int i;
     // convert into double format
     for (i = 0; i < N * data->channels; ++i) {
         data->in[i] = (double) in[i];
-        if (data->pipeline->plugins_len == 0) data->out[i] = (double) in[i];
+        if (data->pipeline->plugins_len == 0) data->out[i] = data->in[i];
     }
 
     void * _tmp; // for swapping
@@ -78,6 +79,8 @@ int _pa_callback(
 
     double et = chaudio_time();
 
+    printf("took %lf ms\n", (et - st) * 1000.0);
+
     // output to float
     for (i = 0; i < N * data->channels; ++i) {
         out[i] = (float) data->out[i];
@@ -85,7 +88,7 @@ int _pa_callback(
     return paContinue;
 }
 
-void chaudio_portaudio_realtime_process(chaudio_pipeline_t * pipeline, int32_t bufsize) {
+void chaudio_portaudio_realtime_process(chaudio_pipeline_t * pipeline, int32_t bufsize, int32_t sample_rate) {
 
     int channels = 1;
 
@@ -123,7 +126,7 @@ void chaudio_portaudio_realtime_process(chaudio_pipeline_t * pipeline, int32_t b
     pa_data_t pa_data;
 
     pa_data.channels = channels;
-    pa_data.sample_rate = CHAUDIO_DEFAULT_SAMPLE_RATE;
+    pa_data.sample_rate = sample_rate;
     pa_data.in = NULL;
     pa_data.out = NULL;
     pa_data.pipeline = pipeline;
@@ -132,7 +135,7 @@ void chaudio_portaudio_realtime_process(chaudio_pipeline_t * pipeline, int32_t b
         &stream,
         &input_params,
         &output_params,
-        44100,
+        sample_rate,
         bufsize, // we use output stuff
         paClipOff, /* we won't output out of range samples so don't bother clipping them */
         _pa_callback,
@@ -152,8 +155,16 @@ void chaudio_portaudio_realtime_process(chaudio_pipeline_t * pipeline, int32_t b
         printf("portaudio: Failed to start stream!\n");
     });
 
+getchar();
+/*
 
-    while (1) ;
+    PaStreamInfo * stream_info = NULL;
+
+    while (1) {
+	Pa_Sleep(1000);
+	stream_info = Pa_GetStreamInfo(&stream);	
+ }
+*/
 
     IFERR(Pa_StopStream(stream), {});
     IFERR(Pa_CloseStream(stream), {});

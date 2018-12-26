@@ -26,7 +26,9 @@ int main(int argc, char ** argv) {
     int i;
     char c;
 
-    int32_t bufsize = CHAUDIO_DEFAULT_BUFFER_SIZE;
+
+    int32_t sample_rate = CHAUDIO_DEFAULT_SAMPLE_RATE;
+    int32_t bufsize = 256;// for raeltime
 
     char * ckey = malloc(4096);
     double cval = 0.0; 
@@ -36,12 +38,13 @@ int main(int argc, char ** argv) {
 
     chaudio_generator_t gen;
 
-    while ((c = getopt (argc, argv, "b:i:p:D:h")) != (char)-1) {
+    while ((c = getopt (argc, argv, "b:i:p:D:r:h")) != (char)-1) {
         if (c == 'h') {
             printf("Realtime audio processing\n");
             printf("Usage: ch_realtime_pipeline [options...]\n");
             printf("\n");
             printf("  -b [N]                      processing buffer size\n");
+            printf("  -r [N]                      set sample rate\n");
             printf("  -i [gen.so]                 generator to use for input\n");
             printf("  -p [plg.so]                 plugin library file\n");
             printf("  -D [k=v]                    set a value for a plugin\n");
@@ -49,6 +52,8 @@ int main(int argc, char ** argv) {
             printf("%s", chaudio_get_build_info());
             printf("\n");
             return 0;
+        } else if (c == 'r') {
+	    sscanf(optarg, "%d", &sample_rate);
         } else if (c == 'b') {
             sscanf(optarg, "%d", &bufsize);
         } else if (c == 'i') {
@@ -77,7 +82,7 @@ int main(int argc, char ** argv) {
 
     //chaudio_pipeline_runforever(&pipeline, bufsize);
 #ifdef HAVE_PORTAUDIO
-    chaudio_portaudio_realtime_process(&pipeline, bufsize);
+    chaudio_portaudio_realtime_process(&pipeline, bufsize, sample_rate);
 #else
     printf("To use ch_realtime_pipline, you need to recompile with PortAudio!\n");
     return 1;

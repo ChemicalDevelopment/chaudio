@@ -252,7 +252,7 @@ void chaudio_pipeline_free(chaudio_pipeline_t * pipeline);
 #ifdef HAVE_PORTAUDIO
 
 // else give an error or something
-void chaudio_portaudio_realtime_process(chaudio_pipeline_t * pipeline, int32_t bufsize);
+void chaudio_portaudio_realtime_process(chaudio_pipeline_t * pipeline, int32_t bufsize, int32_t sample_rate);
 
 #endif
 
